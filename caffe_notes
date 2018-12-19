@@ -1,0 +1,5 @@
+train test i val txt fajlovi se ne smeju zavrsavati novim redom pre prosledjivanja convert_images tool-u, inace fejluje
+
+-snapshot putanja/do/fajl.solverstate nastavlja ucenje
+
+na https://github.com/NVlabs/PL4NN/blob/master/src/loss.py imamo definisane loss funkcije koje su se dobro pokazale za rekonstrukciju slika, mozda zatreba

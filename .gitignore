@@ -1,6 +1,8 @@
 # Prerequisites
 *.d
 
+build/*
+
 # Compiled Object files
 *.slo
 *.lo
@@ -30,3 +32,10 @@
 *.exe
 *.out
 *.app
+
+#vim files
+
+
+#vim files
+*.i
+*.un~

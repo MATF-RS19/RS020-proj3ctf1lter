@@ -21,17 +21,19 @@ class Compressor {
              const string& trained_file,
              const string& mean_file);
 
-  std::vector<cv::Mat&> Compress_to_multiple(const cv::Mat& img, int n);
+  std::vector<float> Compress(const cv::Mat& img);
 
  private:
   void SetMean(const string& mean_file);
-
-  std::vector<float> Compress(const cv::Mat& img);
 
   void WrapInputLayer(std::vector<cv::Mat>* input_channels);
 
   void Preprocess(const cv::Mat& img,
                   std::vector<cv::Mat>* input_channels);
+
+  auto gime_res(const cv::Mat& img) const {
+  	
+  }
 
  private:
   shared_ptr<Net<float> > net_;
@@ -112,7 +114,7 @@ std::vector<float> Compressor::Compress(const cv::Mat& img) {
 
   Preprocess(img, &input_channels);
 
-  net_->Forward();
+  net_->ForwardFromTo(0, 3);
 
   /* Copy the output layer to a std::vector */
   Blob<float>* output_layer = net_->output_blobs()[0];
@@ -198,6 +200,9 @@ int main(int argc, char** argv) {
  
   cv::Mat img = cv::imread(file, -1); 
   CHECK(!img.empty()) << "Unable to decode image " << file; 
+
+  auto cmp = compressor.Compress(img);
+
 //  cv::Mat compressed = compressor.Compress_to_multiple(img, 1);
 //
 //  std::cout << "----------\\

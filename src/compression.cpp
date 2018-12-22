@@ -10,6 +10,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include <ostream>
 
 #ifdef USE_OPENCV
 using namespace caffe;  // NOLINT(build/namespaces)
@@ -98,10 +99,6 @@ void Compressor::SetMean(const string& mean_file) {
   mean_ = cv::Mat(input_geometry_, mean.type(), channel_mean);
 }
 
-//std::vector<cv::Mat&> Compressor::Compress_to_multiple(cv::Mat& img, int n){
-	
-//}
-
 std::vector<float> Compressor::Compress(const cv::Mat& img) {
   Blob<float>* input_layer = net_->input_blobs()[0];
   input_layer->Reshape(1, num_channels_,
@@ -114,13 +111,22 @@ std::vector<float> Compressor::Compress(const cv::Mat& img) {
 
   Preprocess(img, &input_channels);
 
-  net_->ForwardFromTo(0, 3);
+  net_->Forward();
 
   /* Copy the output layer to a std::vector */
   Blob<float>* output_layer = net_->output_blobs()[0];
+
   const float* begin = output_layer->cpu_data();
-  const float* end = begin + output_layer->channels();
-  return std::vector<float>(begin, end);
+  const float* end = begin + output_layer->count();
+
+  std::vector<float> compression(begin, end);
+
+  if(output_layer->width() > 1 || output_layer->height() > 1) {
+	std::cout << "Deploy.prototxt outputs a image of some sort, storing it as rez.bmp" << std::endl;
+    cv::imwrite("./rez.bmp", cv::Mat(output_layer->width(),output_layer->height(), CV_32FC3, compression.data())); 
+  }
+
+  return compression;
 }
 
 /* Wrap the input layer of the network in separate cv::Mat objects
@@ -201,19 +207,20 @@ int main(int argc, char** argv) {
   cv::Mat img = cv::imread(file, -1); 
   CHECK(!img.empty()) << "Unable to decode image " << file; 
 
-  auto cmp = compressor.Compress(img);
+  auto compressed = compressor.Compress(img);
 
-//  cv::Mat compressed = compressor.Compress_to_multiple(img, 1);
-//
-//  std::cout << "----------\\
-//	 Saved compressed file to "<< "compressed" << argv[4] 
-//	 << "----------" << std::endl; 
-// 
-//  cv::imwrite("compressed_"<<argv[4], compressed); 
+  std::ofstream out("compressed.txt");
+
+  for(auto a:compressed)
+	  out << a << " ";
+
+  std::cout << "---------- Saved compressed file to compressed.txt ----------" << std::endl; 
+  
+  out.close();
 }
 
 #else
 int main(int argc, char** argv) {
-  LOG(FATAL) << "This example requires OpenCV; compile with USE_OPENCV.";
+  LOG(FATAL) << "This test requires OpenCV; compile with USE_OPENCV.";
 }
 #endif  // USE_OPENCV

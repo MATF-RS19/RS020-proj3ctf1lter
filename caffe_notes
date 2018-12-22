@@ -3,3 +3,34 @@ train test i val txt fajlovi se ne smeju zavrsavati novim redom pre prosledjivan
 -snapshot putanja/do/fajl.solverstate nastavlja ucenje
 
 na https://github.com/NVlabs/PL4NN/blob/master/src/loss.py imamo definisane loss funkcije koje su se dobro pokazale za rekonstrukciju slika, mozda zatreba
+
+pregled izgleda mreze dostupan na: https://dgschwend.github.io/netscope/#/editor
+
+podrazumevam da se caffe folder nalazi u ~/ , ako nije premestite ili izmenite komande
+
+pokretanje treniranja:
+
+~/caffe/build/tools/caffe train -solver src/prototxt_files/compress_solver.prototxt
+
+treniranje izbacuje 2 fajla: compress_net_nesto.caffemodel i compres_net_nesto.solverstate
+
+u caffemodel fajlu se nalaze naucene tezine svakog sloja, u solverstate se nalaze podaci potrebni da se ucenje nastavi ukoliko je pauzirano
+
+pokretanje treniranja sa preuzimanjem tezina iz neke vec naucene mreze:
+
+~/caffe/build/tools/caffe train -solver src/prototxt_files/compress_solver.prototxt -weights naucena_mreza.caffemodel
+
+pri cemu se imena slojeva koje preuzimamo moraju poklapati sa onim u compress_net.prototxt, ovo navodim za slucaj da se odlucimo da pokupimo tezine iz neke vec dobro pokazane mreze sto bi nam ustedelo dosta vremena
+
+pokretanje testa:
+
+./build/main src/prototxt_files/compress_deploy.prototxt src/prototxt_files/compress_net_snap_iter_20.caffemodel \
+build/train_mean.binaryproto val/George_W_Bush_0491.jpg 
+
+prvi argument je deploy fajl koji opisuje kako zelimo da nam izgleda mreza koju testiramo (mora biti podskup mreze koja je trenirana) drugi fajl su istrenirane tezine, treci sadrzi srednje vrednosti ulaza tokom ucenja i cetvrti je slika na kojoj testiramo
+
+za generisanje mean.binaryproto fajla pokrenuti:
+
+~/caffe/build/tools/compute_image_mean putanja/do/lmdb build/mean.binaryproto
+
+

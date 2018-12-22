@@ -39,3 +39,5 @@ build/*
 #vim files
 *.i
 *.un~
+*.swp
+*~

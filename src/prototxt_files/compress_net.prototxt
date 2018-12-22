@@ -8,14 +8,15 @@ layer {
     phase: TRAIN
   }
   transform_param {
-    mirror: true
     crop_size: 227
-    mean_file: "data/ilsvrc12/imagenet_mean.binaryproto"
+    mean_file: "../../build/train_mean.binaryproto"
   }
   data_param {
-    source: "examples/imagenet/ilsvrc12_train_lmdb"
-    batch_size: 1
-    backend: LMDB
+  	backend: LMDB
+    source: "../../build/train_lmdb"
+	#new_width: 256
+	#new_height: 256
+    batch_size: 3
   }
 }
 layer {
@@ -27,14 +28,15 @@ layer {
     phase: TEST
   }
   transform_param {
-    mirror: false
     crop_size: 227
-    mean_file: "data/ilsvrc12/imagenet_mean.binaryproto"
+    mean_file: "../../build/val_mean.binaryproto"
   }
   data_param {
-    source: "examples/imagenet/ilsvrc12_val_lmdb"
-    batch_size: 1
-    backend: LMDB
+  	backend: LMDB
+    source: "../../build/val_lmdb"
+	#new_width: 256
+	#new_height: 256
+    batch_size: 3
   }
 }
 layer {
@@ -160,7 +162,7 @@ layer {
     decay_mult: 0
   }
   convolution_param {
-    num_output: 256
+    num_output: 96
     pad: 2
     kernel_size: 11
 	stride: 8
@@ -188,7 +190,7 @@ layer {
     decay_mult: 0
   }
   convolution_param {
-    num_output: 96
+    num_output: 3
     kernel_size: 11
     stride: 4
     weight_filler {
@@ -213,7 +215,7 @@ layer {
 }
 layer {
   name: "loss"
-  type: "SigmoidCrossEntropyLoss"
+  type: "MultinomialLogisticLoss"
   bottom: "deConv3"
   bottom: "image"
   top: "loss"

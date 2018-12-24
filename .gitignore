@@ -41,3 +41,6 @@ build/*
 *.un~
 *.swp
 *~
+
+#caffe outputs
+compress_net_snap_iter_*

@@ -1,37 +1,9 @@
 name: "Compress_net"
 layer {
   name: "data"
-  type: "Data"
+  type: "Input"
   top: "data"
-  include {
-    phase: TRAIN
-  }
-  transform_param {
-    crop_size: 28
-    mean_file: "../../build/train_mean.binaryproto"
-  }
-  data_param {
-  	backend: LMDB
-    source: "../../build/train_lmdb"
-    batch_size: 3
-  }
-}
-layer {
-  name: "data"
-  type: "Data"
-  top: "data"
-  include {
-    phase: TEST
-  }
-  transform_param {
-    crop_size: 28
-    mean_file: "../../build/val_mean.binaryproto"
-  }
-  data_param {
-  	backend: LMDB
-    source: "../../build/val_lmdb"
-    batch_size: 3
-  }
+  input_param {shape: {dim: 1 dim: 3 dim: 28 dim: 28}}
 }
 layer {
   name: "conv1"
@@ -259,27 +231,4 @@ layer {
     weight_filler { type: "xavier" }
     bias_filler { type: "constant" }
   }
-}
-# --------- calculate loss ---------
-layer {
-  name: "sigm_loss"
-  type: "SigmoidCrossEntropyLoss"
-  bottom: "deconv1neur"
-  bottom: "data"
-  top: "cross_entropy_loss"
-  loss_weight: 1
-}
-layer {
-  name: "sigDeconv1neur"
-  type: "Sigmoid"
-  bottom: "deconv1neur"
-  top: "sigDeconv1neur"
-}
-layer {
-  name: "eucl_loss"
-  type: "EuclideanLoss"
-  bottom: "data"
-  bottom: "sigDeconv1neur"
-  top: "l2_error"
-  loss_weight: 0
 }

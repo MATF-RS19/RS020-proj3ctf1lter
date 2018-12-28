@@ -22,7 +22,9 @@ class Compressor {
              const string& trained_file,
              const string& mean_file);
 
-  std::vector<float> Compress(const cv::Mat& img);
+  std::vector<float> compress(const cv::Mat& img);
+
+  void decompress();
 
  private:
   void SetMean(const string& mean_file);
@@ -64,8 +66,10 @@ Compressor::Compressor(const string& model_file,
     << "Input layer should have 1 or 3 channels.";
   input_geometry_ = cv::Size(input_layer->width(), input_layer->height());
 
-  /* Load the binaryproto mean file. */
-  SetMean(mean_file);
+  if(mean_file != "") {
+    /* Load the binaryproto mean file. */
+    SetMean(mean_file);
+  }
 }
 
 void Compressor::SetMean(const string& mean_file) {
@@ -99,7 +103,7 @@ void Compressor::SetMean(const string& mean_file) {
   mean_ = cv::Mat(input_geometry_, mean.type(), channel_mean);
 }
 
-std::vector<float> Compressor::Compress(const cv::Mat& img) {
+std::vector<float> Compressor::compress(const cv::Mat& img) {
   Blob<float>* input_layer = net_->input_blobs()[0];
   input_layer->Reshape(1, num_channels_,
                        input_geometry_.height, input_geometry_.width);
@@ -187,15 +191,59 @@ void Compressor::Preprocess(const cv::Mat& img,
     << "Input channels are not wrapping the input layer of the network.";
 }
 
+void Compressor::decompress() {
+
+	std::vector<float> compression;
+	std::ifstream in("compressed.txt");
+	float val;
+
+	in >> val;
+	while(val && !in.eof()) {
+		compression.push_back(val);
+		in >> val;
+	}
+
+	in.close();
+
+	net_->input_blobs()[0]->set_cpu_data( compression.data() );
+
+	net_->Forward();
+
+    /* Copy the output layer to a std::vector */
+    Blob<float>* output_layer = net_->output_blobs()[0];
+	
+	const float* begin = output_layer->cpu_data();
+	const float* end = begin + output_layer->count();
+
+	std::vector<float> decompression(begin, end);
+
+	if(output_layer->width() > 1 || output_layer->height() > 1) {
+		std::cout << "Saving image as decompression.bmp" << std::endl;
+		cv::imwrite("./decompression.bmp", cv::Mat(output_layer->width(),output_layer->height(), CV_32FC3, decompression.data())); 
+  	}
+}
+
 int main(int argc, char** argv) { 
-  if (argc != 5) { 
+  if (argc != 5 && argc != 4) { 
     std::cerr << "Usage: " << argv[0] 
-              << " deploy.prototxt network.caffemodel" 
-              << " mean.binaryproto img.jpg" << std::endl; 
+              << " [-d] deploy.prototxt network.caffemodel" 
+              << " [mean.binaryproto img.jpg]" << std::endl; 
     return 1; 
   } 
  
   ::google::InitGoogleLogging(argv[0]); 
+ 
+  if(argc == 4 && argv[1] == std::string("-d")) {
+
+  	string model_file   = argv[2]; 
+  	string trained_file = argv[3]; 
+  	Compressor compressor(model_file, trained_file, ""); 
+
+  	compressor.decompress();
+	return 0;
+  } else {
+  	std::cout << "*" << argv[1] << "*" << std::endl;
+  }
  
   string model_file   = argv[1]; 
   string trained_file = argv[2]; 
@@ -203,11 +251,11 @@ int main(int argc, char** argv) {
   Compressor compressor(model_file, trained_file, mean_file); 
  
   string file = argv[4]; 
- 
+
   cv::Mat img = cv::imread(file, -1); 
   CHECK(!img.empty()) << "Unable to decode image " << file; 
 
-  auto compressed = compressor.Compress(img);
+  auto compressed = compressor.compress(img);
 
   std::ofstream out("compressed.txt");
 
@@ -217,6 +265,8 @@ int main(int argc, char** argv) {
   std::cout << "---------- Saved compressed file to compressed.txt ----------" << std::endl; 
   
   out.close();
+
+  return 0;
 }
 
 #else

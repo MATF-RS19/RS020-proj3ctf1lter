@@ -46,12 +46,22 @@ $ cd src
 $ ./images_to_lmdb.sh
 ```
 
+- Create image mean for training and val:
+
+```shell
+$ cd prototxt_files
+$ ~/caffe/build/tools/compute_image_mean ../../build/train_lmdb/ train_mean.binaryproto
+$ mv train_mean.binaryproto ../../build/train_mean.binaryproto
+$ ~/caffe/build/tools/compute_image_mean ../../build/val_lmdb/ val_mean.binaryproto
+$ mv val_mean.binaryproto ../../build/val_mean.binaryproto
+```
+
 - Then train neural network:
 
 ```shell
-$ cd src/prototxt_files
-$ ~/caffe/build/tools/caffe train -solver compress_solver.prototxt
+$ ~/caffe/build/tools/caffe train -solver compress_solver.prototxt -gpu all
 ```
+Note: Remove -gpu all flag to train on CPU
 
 ## Built With
 

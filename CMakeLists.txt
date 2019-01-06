@@ -4,7 +4,8 @@ project(proj3ctf1lter)
 
 find_package(OpenCV REQUIRED)
 
-SET(CMAKE_CXX_FLAGS "-DUSE_OPENCV -DCPU_ONLY")
+# Remove -DCPU_ONLY in order to use GPU
+SET(CMAKE_CXX_FLAGS "-DUSE_OPENCV")
 SET(CMAKE_EXE_LINKER_FLAGS "-lglog -lboost_system -L/usr/lib/caffe/ -lcaffe")
 
 file(GLOB proj3ctf1lter_SRC 

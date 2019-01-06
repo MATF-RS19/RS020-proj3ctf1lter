@@ -29,7 +29,8 @@ caffe (located at ~)
 
 ```shell
 $ cd RS020-proj3ctf1lter
-$ cmake .
+$ mkdir build && cd build
+$ cmake ..
 $ make
 ```
 

@@ -12,6 +12,9 @@
 #include <vector>
 #include <ostream>
 
+#define TYPE (0)
+#define OUTPUT_STARTING_IMAGE (0)
+
 #ifdef USE_OPENCV
 using namespace caffe;  // NOLINT(build/namespaces)
 using std::string;
@@ -33,10 +36,6 @@ class Compressor {
 
   void Preprocess(const cv::Mat& img,
                   std::vector<cv::Mat>* input_channels);
-
-  auto gime_res(const cv::Mat& img) const {
-  	
-  }
 
  private:
   shared_ptr<Net<float> > net_;
@@ -127,7 +126,7 @@ std::vector<float> Compressor::compress(const cv::Mat& img) {
 
   if(output_layer->width() > 1 || output_layer->height() > 1) {
 	std::cout << "Deploy.prototxt outputs a image of some sort, storing it as rez.bmp" << std::endl;
-    cv::imwrite("./rez.bmp", cv::Mat(output_layer->width(),output_layer->height(), CV_32FC3, compression.data())); 
+    cv::imwrite("./rez.bmp", cv::Mat(output_layer->width(),output_layer->height(), TYPE, compression.data())); 
   }
 
   return compression;
@@ -219,7 +218,8 @@ void Compressor::decompress() {
 
 	if(output_layer->width() > 1 || output_layer->height() > 1) {
 		std::cout << "Saving image as decompression.bmp" << std::endl;
-		cv::imwrite("./decompression.bmp", cv::Mat(output_layer->width(),output_layer->height(), CV_32FC3, decompression.data())); 
+		cv::Mat mat_decompression(output_layer->width(),output_layer->height(), TYPE, decompression.data());
+		cv::imwrite("./decompression.bmp", mat_decompression); 
   	}
 }
 
@@ -241,10 +241,8 @@ int main(int argc, char** argv) {
 
   	compressor.decompress();
 	return 0;
-  } else {
-  	std::cout << "*" << argv[1] << "*" << std::endl;
-  }
- 
+  } 
+
   string model_file   = argv[1]; 
   string trained_file = argv[2]; 
   string mean_file    = argv[3]; 
@@ -254,6 +252,21 @@ int main(int argc, char** argv) {
 
   cv::Mat img = cv::imread(file, -1); 
   CHECK(!img.empty()) << "Unable to decode image " << file; 
+
+  //outputing file as if it was being decompressed
+  if(OUTPUT_STARTING_IMAGE) { 
+    std::vector<float> entering_image;
+    if (img.isContinuous()) {
+      entering_image.assign((float*)img.datastart, (float*)img.dataend);
+    } else {
+      for (int i = 0; i < img.rows; ++i) {
+        entering_image.insert(entering_image.end(), img.ptr<float>(i), img.ptr<float>(i)+img.cols);
+      }
+    }
+
+    cv::Mat mat_entering_image(img.size().width, img.size().height, TYPE, entering_image.data());
+    cv::imwrite("./entering_image.bmp", mat_entering_image); 
+  }
 
   auto compressed = compressor.compress(img);
 

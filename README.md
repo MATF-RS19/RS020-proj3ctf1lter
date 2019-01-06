@@ -77,7 +77,7 @@ Note: Remove -gpu all flag to train on CPU
 | [![Nikola](https://avatars1.githubusercontent.com/u/30957582?s=200&v=3)](https://github.com/v1rTu0Zz)    | [![Lazar](https://avatars3.githubusercontent.com/u/15856722?s=200&v=3)](https://github.com/laleee) | [![Strahinja](https://avatars1.githubusercontent.com/u/18012692?s=200&v=3)](https://github.com/stral0)  |
 | <a href="https://github.com/v1rTu0Zz" target="_blank">`v1rTu0Zz`</a> | <a href="https://github.com/laleee" target="_blank">`laleee`</a> | <a href="https://github.com/stral0" target="_blank">`stral0`</a> |
 
-See also the list of [contributors](https://github.com/your/project/contributors) who participated in this project.
+See also the list of [contributors](https://github.com/MATF-RS19/RS020-proj3ctf1lter/graphs/contributors) who participated in this project.
 
 ## License
 

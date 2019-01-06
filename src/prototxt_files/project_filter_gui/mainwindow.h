@@ -15,6 +15,13 @@ class MainWindow : public QMainWindow
 public:
     explicit MainWindow(QWidget *parent = 0);
     ~MainWindow();
+
+    QImage& toGrayscale(QImage& qim);
+    QImage& applySobelFilter(QImage& qim);
+    static int calculatePixelValueSobel(int j, uchar* output_scan_current,
+                                        uchar* scan_previous, uchar* scan_current, uchar* scan_next);
+
+
 public Q_SLOTS:
     void button_load_clicked();
     void button_sobel_clicked();
@@ -25,6 +32,7 @@ private:
     ImageProcessor imp;
 
     void set_image();
+    void set_sobel_image();
 };
 
 #endif // MAINWINDOW_H

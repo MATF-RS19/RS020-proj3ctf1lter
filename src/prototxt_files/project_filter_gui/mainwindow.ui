@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>400</width>
-    <height>300</height>
+    <width>607</width>
+    <height>436</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -24,7 +24,7 @@
      </rect>
     </property>
     <property name="text">
-     <string>PushButton</string>
+     <string>Load Image</string>
     </property>
    </widget>
    <widget class="QPushButton" name="button_filter_madian">
@@ -37,7 +37,7 @@
      </rect>
     </property>
     <property name="text">
-     <string>PushButton</string>
+     <string>Median FIlter</string>
     </property>
    </widget>
    <widget class="QPushButton" name="button_filter_sobel">
@@ -50,7 +50,7 @@
      </rect>
     </property>
     <property name="text">
-     <string>PushButton</string>
+     <string>Sobel Filter</string>
     </property>
    </widget>
    <widget class="QPushButton" name="button_filter_blue">
@@ -63,20 +63,20 @@
      </rect>
     </property>
     <property name="text">
-     <string>PushButton</string>
+     <string>Blue Filter</string>
     </property>
    </widget>
    <widget class="QPushButton" name="button_save_image">
     <property name="geometry">
      <rect>
-      <x>300</x>
-      <y>170</y>
+      <x>500</x>
+      <y>180</y>
       <width>89</width>
       <height>25</height>
      </rect>
     </property>
     <property name="text">
-     <string>PushButton</string>
+     <string>Save Image</string>
     </property>
    </widget>
    <widget class="QPushButton" name="pushButton_6">
@@ -89,7 +89,7 @@
      </rect>
     </property>
     <property name="text">
-     <string>PushButton</string>
+     <string>Exit</string>
     </property>
    </widget>
    <widget class="QLabel" name="label_image">
@@ -97,12 +97,25 @@
      <rect>
       <x>20</x>
       <y>140</y>
-      <width>181</width>
-      <height>111</height>
+      <width>231</width>
+      <height>141</height>
      </rect>
     </property>
     <property name="text">
-     <string>TextLabel</string>
+     <string>You'll see the original image here!</string>
+    </property>
+   </widget>
+   <widget class="QLabel" name="label4sobel">
+    <property name="geometry">
+     <rect>
+      <x>270</x>
+      <y>200</y>
+      <width>221</width>
+      <height>151</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>You'll see the SOBELED image here!</string>
     </property>
    </widget>
   </widget>
@@ -111,7 +124,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>400</width>
+     <width>607</width>
      <height>22</height>
     </rect>
    </property>

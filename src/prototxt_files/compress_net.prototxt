@@ -45,9 +45,9 @@ layer {
 	lr_mult: 3	  
   }
   convolution_param {
-    num_output: 8
-    kernel_size: 9
-    stride: 1
+    num_output: 96
+    kernel_size: 11
+    stride: 4
     weight_filler { type: "xavier" }
     bias_filler { type: "constant" }
   }
@@ -70,8 +70,9 @@ layer {
 	lr_mult: 3	  
   }
   convolution_param {
-    num_output: 4
-    kernel_size: 9
+    num_output: 256
+    kernel_size: 5
+	pad: 2
     stride: 1
     weight_filler { type: "xavier" }
     bias_filler { type: "constant" }
@@ -84,80 +85,64 @@ layer {
   top: "conv2"
 }
 layer {
-  name: "ip1encode"
-  type: "InnerProduct"
+  name: "conv3"
+  type: "Convolution"
   bottom: "conv2"
-  top: "ip1encode"
+  top: "conv3"
   param {
 	lr_mult: 1	  
   }
   param {
 	lr_mult: 3	  
   }
-  inner_product_param {
-    num_output: 1024
-    weight_filler { type: "gaussian" std: 1 sparse: 25 }
+  convolution_param {
+    num_output: 256
+    kernel_size: 55
+    weight_filler { type: "xavier" }
     bias_filler { type: "constant" }
   }
 }
 layer {
   name: "sig3en"
   type: "Sigmoid"
-  bottom: "ip1encode"
-  top: "ip1encode"
+  bottom: "conv3"
+  top: "conv3"
 }
 layer {
-  name: "ip2encode"
-  type: "InnerProduct"
-  bottom: "ip1encode"
-  top: "ip2encode"
+  name: "reshape"
+  type: "Reshape"
+  bottom: "conv3"
+  top: "sig3en_reshaped"
+  reshape_param { shape { dim: 0 dim: 0 dim: 1 dim: 1 }}
+}
+layer {
+  name: "deconv3"
+  type: "Deconvolution"
+  bottom: "sig3en_reshaped"
+  top: "deconv3"
   param {
 	lr_mult: 1	  
   }
   param {
 	lr_mult: 3	  
   }
-  inner_product_param {
-    num_output: 1024
-    weight_filler { type: "gaussian" std: 1 sparse: 10 }
-    bias_filler { type: "constant" }
-  }
-}
-# --------- decoding part ---------
-layer {
-  name: "ip1decode"
-  type: "InnerProduct"
-  bottom: "ip2encode"
-  top: "ip1decode"
-  param {
-	lr_mult: 1	  
-  }
-  param {
-	lr_mult: 3	  
-  }
-  inner_product_param {
-    num_output: 1024
-    weight_filler { type: "gaussian" std: 1 sparse: 25 }
+  convolution_param {
+    num_output: 256
+    kernel_size: 55
+    weight_filler { type: "xavier" }
     bias_filler { type: "constant" }
   }
 }
 layer {
   name: "sig3de"
   type: "Sigmoid"
-  bottom: "ip1decode"
-  top: "ip1decode"
-}
-layer {
-  name: "reshape"
-  type: "Reshape"
-  bottom: "ip1decode"
-  top: "ip1decodesh"
-  reshape_param { shape { dim: 0 dim: 0 dim: 1 dim: 1 }}
+  bottom: "deconv3"
+  top: "deconv3"
 }
 layer {
   name: "deconv2"
   type: "Deconvolution"
-  bottom: "ip1decodesh"
+  bottom: "deconv3"
   top: "deconv2"
   param {
 	lr_mult: 1	  
@@ -166,9 +151,10 @@ layer {
 	lr_mult: 3	  
   }
   convolution_param {
-    num_output: 4
-    kernel_size: 12
+    num_output: 96
+    kernel_size: 5
     stride: 1
+	pad: 2
     weight_filler { type: "xavier" }
     bias_filler { type: "constant" }
   }
@@ -192,8 +178,8 @@ layer {
   }
   convolution_param {
     num_output: 3
-    kernel_size: 17
-    stride: 1
+    kernel_size: 11
+    stride: 4
     weight_filler { type: "xavier" }
     bias_filler { type: "constant" }
   }
@@ -218,8 +204,8 @@ layer {
   }
   convolution_param {
     num_output: 3
-    kernel_size: 11
-    stride: 8
+    kernel_size: 1
+    stride: 1
     weight_filler { type: "xavier" }
     bias_filler { type: "constant" }
   }

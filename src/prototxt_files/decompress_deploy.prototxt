@@ -3,14 +3,14 @@ layer {
   name: "data"
   type: "Input"
   top: "data"
-  input_param {shape: {dim: 1 dim: 1 dim: 256}}
+  input_param {shape: {dim: 1 dim: 1 dim: 1024}}
 }
 # --------- decoding part ---------
 layer {
-  name: "ip1decodep"
+  name: "ip1decode"
   type: "InnerProduct"
   bottom: "data"
-  top: "ip1decodep"
+  top: "ip1decode"
   param {
 	lr_mult: 1	  
   }
@@ -18,7 +18,7 @@ layer {
 	lr_mult: 3	  
   }
   inner_product_param {
-    num_output: 256
+    num_output: 1024
     weight_filler { type: "gaussian" std: 1 sparse: 25 }
     bias_filler { type: "constant" }
   }
@@ -26,13 +26,13 @@ layer {
 layer {
   name: "sig3de"
   type: "Sigmoid"
-  bottom: "ip1decodep"
-  top: "ip1decodep"
+  bottom: "ip1decode"
+  top: "ip1decode"
 }
 layer {
   name: "reshape"
   type: "Reshape"
-  bottom: "ip1decodep"
+  bottom: "ip1decode"
   top: "ip1decodesh"
   reshape_param { shape { dim: 0 dim: 0 dim: 1 dim: 1 }}
 }
@@ -62,10 +62,10 @@ layer {
   top: "deconv2"
 }
 layer {
-  name: "deconv1p"
+  name: "deconv1"
   type: "Deconvolution"
   bottom: "deconv2"
-  top: "deconv1p"
+  top: "deconv1"
   param {
 	lr_mult: 1	  
   }
@@ -83,15 +83,15 @@ layer {
 layer {
   name: "sig1de"
   type: "Sigmoid"
-  bottom: "deconv1p"
-  top: "deconv1p"
+  bottom: "deconv1"
+  top: "deconv1"
 }
 # -- convert back to 784 elements --
 layer {
-  name: "deconv1neurp"
+  name: "deconv1neur"
   type: "Deconvolution"
-  bottom: "deconv1p"
-  top: "deconv1neurp"
+  bottom: "deconv1"
+  top: "deconv1neur"
   param {
 	lr_mult: 1	  
   }

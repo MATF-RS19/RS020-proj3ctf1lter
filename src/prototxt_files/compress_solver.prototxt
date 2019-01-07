@@ -2,14 +2,13 @@ net: "compress_net.prototxt"
 type: "Nesterov"
 #test_iter: 1
 #test_interval: 10
-base_lr: 0.000005
+base_lr: 0.000008819
 lr_policy: "step"
-gamma: 0.2
+gamma: 0.99999
 stepsize: 100
 display: 5
-max_iter: 100
+max_iter: 3500
 momentum: 0.9
 weight_decay: 0.004
 regularization_type: "L2"
 snapshot_prefix: "compress_net_snap"
-solver_mode: CPU

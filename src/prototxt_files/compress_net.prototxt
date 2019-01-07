@@ -13,7 +13,7 @@ layer {
   data_param {
   	backend: LMDB
     source: "../../build/train_lmdb"
-    batch_size: 1
+    batch_size: 3
   }
 }
 layer {
@@ -30,14 +30,14 @@ layer {
   data_param {
   	backend: LMDB
     source: "../../build/val_lmdb"
-    batch_size: 1
+    batch_size: 3
   }
 }
 layer {
-  name: "conv1p"
+  name: "conv1"
   type: "Convolution"
   bottom: "data"
-  top: "conv1p"
+  top: "conv1"
   param {
 	lr_mult: 1	  
   }
@@ -55,13 +55,13 @@ layer {
 layer {
   name: "sig1en"
   type: "Sigmoid"
-  bottom: "conv1p"
-  top: "conv1p"
+  bottom: "conv1"
+  top: "conv1"
 }
 layer {
   name: "conv2"
   type: "Convolution"
-  bottom: "conv1p"
+  bottom: "conv1"
   top: "conv2"
   param {
 	lr_mult: 1	  
@@ -84,10 +84,10 @@ layer {
   top: "conv2"
 }
 layer {
-  name: "ip1encodep"
+  name: "ip1encode"
   type: "InnerProduct"
   bottom: "conv2"
-  top: "ip1encodep"
+  top: "ip1encode"
   param {
 	lr_mult: 1	  
   }
@@ -95,7 +95,7 @@ layer {
 	lr_mult: 3	  
   }
   inner_product_param {
-    num_output: 256
+    num_output: 1024
     weight_filler { type: "gaussian" std: 1 sparse: 25 }
     bias_filler { type: "constant" }
   }
@@ -103,14 +103,14 @@ layer {
 layer {
   name: "sig3en"
   type: "Sigmoid"
-  bottom: "ip1encodep"
-  top: "ip1encodep"
+  bottom: "ip1encode"
+  top: "ip1encode"
 }
 layer {
-  name: "ip2encodep"
+  name: "ip2encode"
   type: "InnerProduct"
-  bottom: "ip1encodep"
-  top: "ip2encodep"
+  bottom: "ip1encode"
+  top: "ip2encode"
   param {
 	lr_mult: 1	  
   }
@@ -118,17 +118,17 @@ layer {
 	lr_mult: 3	  
   }
   inner_product_param {
-    num_output: 256
+    num_output: 1024
     weight_filler { type: "gaussian" std: 1 sparse: 10 }
     bias_filler { type: "constant" }
   }
 }
 # --------- decoding part ---------
 layer {
-  name: "ip1decodep"
+  name: "ip1decode"
   type: "InnerProduct"
-  bottom: "ip2encodep"
-  top: "ip1decodep"
+  bottom: "ip2encode"
+  top: "ip1decode"
   param {
 	lr_mult: 1	  
   }
@@ -136,7 +136,7 @@ layer {
 	lr_mult: 3	  
   }
   inner_product_param {
-    num_output: 256
+    num_output: 1024
     weight_filler { type: "gaussian" std: 1 sparse: 25 }
     bias_filler { type: "constant" }
   }
@@ -144,13 +144,13 @@ layer {
 layer {
   name: "sig3de"
   type: "Sigmoid"
-  bottom: "ip1decodep"
-  top: "ip1decodep"
+  bottom: "ip1decode"
+  top: "ip1decode"
 }
 layer {
   name: "reshape"
   type: "Reshape"
-  bottom: "ip1decodep"
+  bottom: "ip1decode"
   top: "ip1decodesh"
   reshape_param { shape { dim: 0 dim: 0 dim: 1 dim: 1 }}
 }
@@ -180,10 +180,10 @@ layer {
   top: "deconv2"
 }
 layer {
-  name: "deconv1p"
+  name: "deconv1"
   type: "Deconvolution"
   bottom: "deconv2"
-  top: "deconv1p"
+  top: "deconv1"
   param {
 	lr_mult: 1	  
   }
@@ -201,20 +201,20 @@ layer {
 layer {
   name: "sig1de"
   type: "Sigmoid"
-  bottom: "deconv1p"
-  top: "deconv1p"
+  bottom: "deconv1"
+  top: "deconv1"
 }
 # -- convert back to 784 elements --
 layer {
-  name: "deconv1neurp"
+  name: "deconv1neur"
   type: "Deconvolution"
-  bottom: "deconv1p"
-  top: "deconv1neurp"
+  bottom: "deconv1"
+  top: "deconv1neur"
   param {
-	lr_mult: 1
+	lr_mult: 1	  
   }
   param {
-	lr_mult: 3
+	lr_mult: 3	  
   }
   convolution_param {
     num_output: 3
@@ -226,9 +226,24 @@ layer {
 }
 # --------- calculate loss ---------
 layer {
-	name: "eucl_loss"
-	type: "EuclideanLoss"
-	bottom: "deconv1neurp"
-	bottom: "data"
-	loss_weight: 1
+  name: "sigm_loss"
+  type: "SigmoidCrossEntropyLoss"
+  bottom: "deconv1neur"
+  bottom: "data"
+  top: "cross_entropy_loss"
+  loss_weight: 1
+}
+layer {
+  name: "sigDeconv1neur"
+  type: "Sigmoid"
+  bottom: "deconv1neur"
+  top: "sigDeconv1neur"
+}
+layer {
+  name: "eucl_loss"
+  type: "EuclideanLoss"
+  bottom: "data"
+  bottom: "sigDeconv1neur"
+  top: "l2_error"
+  loss_weight: 0
 }

@@ -6,10 +6,10 @@ layer {
   input_param {shape: {dim: 1 dim: 3 dim: 227 dim: 227}}
 }
 layer {
-  name: "conv1p"
+  name: "conv1"
   type: "Convolution"
   bottom: "data"
-  top: "conv1p"
+  top: "conv1"
   param {
 	lr_mult: 1	  
   }
@@ -27,13 +27,13 @@ layer {
 layer {
   name: "sig1en"
   type: "Sigmoid"
-  bottom: "conv1p"
-  top: "conv1p"
+  bottom: "conv1"
+  top: "conv1"
 }
 layer {
-  name: "conv2p"
+  name: "conv2"
   type: "Convolution"
-  bottom: "conv1p"
+  bottom: "conv1"
   top: "conv2"
   param {
 	lr_mult: 1	  
@@ -56,10 +56,10 @@ layer {
   top: "conv2"
 }
 layer {
-  name: "ip1encodep"
+  name: "ip1encode"
   type: "InnerProduct"
   bottom: "conv2"
-  top: "ip1encodep"
+  top: "ip1encode"
   param {
 	lr_mult: 1	  
   }
@@ -67,7 +67,7 @@ layer {
 	lr_mult: 3	  
   }
   inner_product_param {
-    num_output: 256
+    num_output: 1024
     weight_filler { type: "gaussian" std: 1 sparse: 25 }
     bias_filler { type: "constant" }
   }
@@ -75,14 +75,14 @@ layer {
 layer {
   name: "sig3en"
   type: "Sigmoid"
-  bottom: "ip1encodep"
-  top: "ip1encodep"
+  bottom: "ip1encode"
+  top: "ip1encode"
 }
 layer {
-  name: "ip2encodep"
+  name: "ip2encode"
   type: "InnerProduct"
-  bottom: "ip1encodep"
-  top: "ip2encodep"
+  bottom: "ip1encode"
+  top: "ip2encode"
   param {
 	lr_mult: 1	  
   }
@@ -90,7 +90,7 @@ layer {
 	lr_mult: 3	  
   }
   inner_product_param {
-    num_output: 256
+    num_output: 1024
     weight_filler { type: "gaussian" std: 1 sparse: 10 }
     bias_filler { type: "constant" }
   }

@@ -5,31 +5,104 @@ layer {
   top: "data"
   input_param {shape: {dim: 1 dim: 1 dim: 256}}
 }
+# --------- decoding part ---------
 layer {
-  name: "deConv1"
-  type: "Deconvolution"
+  name: "ip1decodep"
+  type: "InnerProduct"
   bottom: "data"
-  top: "deConv1"
+  top: "ip1decodep"
   param {
-    lr_mult: 1
-    decay_mult: 1
+	lr_mult: 1	  
   }
   param {
-    lr_mult: 2
-    decay_mult: 0
+	lr_mult: 3	  
+  }
+  inner_product_param {
+    num_output: 256
+    weight_filler { type: "gaussian" std: 1 sparse: 25 }
+    bias_filler { type: "constant" }
+  }
+}
+layer {
+  name: "sig3de"
+  type: "Sigmoid"
+  bottom: "ip1decodep"
+  top: "ip1decodep"
+}
+layer {
+  name: "reshape"
+  type: "Reshape"
+  bottom: "ip1decodep"
+  top: "ip1decodesh"
+  reshape_param { shape { dim: 0 dim: 0 dim: 1 dim: 1 }}
+}
+layer {
+  name: "deconv2"
+  type: "Deconvolution"
+  bottom: "ip1decodesh"
+  top: "deconv2"
+  param {
+	lr_mult: 1	  
+  }
+  param {
+	lr_mult: 3	  
   }
   convolution_param {
-    engine: CAFFE
+    num_output: 4
+    kernel_size: 12
+    stride: 1
+    weight_filler { type: "xavier" }
+    bias_filler { type: "constant" }
+  }
+}
+layer {
+  name: "sig2de"
+  type: "Sigmoid"
+  bottom: "deconv2"
+  top: "deconv2"
+}
+layer {
+  name: "deconv1p"
+  type: "Deconvolution"
+  bottom: "deconv2"
+  top: "deconv1p"
+  param {
+	lr_mult: 1	  
+  }
+  param {
+	lr_mult: 3	  
+  }
+  convolution_param {
+    num_output: 3
+    kernel_size: 17
+    stride: 1
+    weight_filler { type: "xavier" }
+    bias_filler { type: "constant" }
+  }
+}
+layer {
+  name: "sig1de"
+  type: "Sigmoid"
+  bottom: "deconv1p"
+  top: "deconv1p"
+}
+# -- convert back to 784 elements --
+layer {
+  name: "deconv1neurp"
+  type: "Deconvolution"
+  bottom: "deconv1p"
+  top: "deconv1neurp"
+  param {
+	lr_mult: 1	  
+  }
+  param {
+	lr_mult: 3	  
+  }
+  convolution_param {
     num_output: 3
     kernel_size: 11
-  stride: 4
-    weight_filler {
-      type: "gaussian"
-      std: 0.01
-    }
-    bias_filler {
-      type: "constant"
-      value: 0.1
-    }
+    stride: 8
+    weight_filler { type: "xavier" }
+    bias_filler { type: "constant" }
   }
 }

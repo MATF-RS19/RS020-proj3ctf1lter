@@ -6,30 +6,92 @@ layer {
   input_param {shape: {dim: 1 dim: 3 dim: 227 dim: 227}}
 }
 layer {
-  name: "conv1"
+  name: "conv1p"
   type: "Convolution"
   bottom: "data"
-  top: "conv1"
+  top: "conv1p"
   param {
-    lr_mult: 1
-    decay_mult: 1
+	lr_mult: 1	  
   }
   param {
-    lr_mult: 2
-    decay_mult: 0
+	lr_mult: 3	  
   }
   convolution_param {
-    engine: CAFFE
-    num_output: 96
-    kernel_size: 10
-    stride: 4
-    weight_filler {
-      type: "gaussian"
-      std: 0.01
-    }
-    bias_filler {
-      type: "constant"
-      value: 0
-    }
+    num_output: 8
+    kernel_size: 9
+    stride: 1
+    weight_filler { type: "xavier" }
+    bias_filler { type: "constant" }
+  }
+}
+layer {
+  name: "sig1en"
+  type: "Sigmoid"
+  bottom: "conv1p"
+  top: "conv1p"
+}
+layer {
+  name: "conv2p"
+  type: "Convolution"
+  bottom: "conv1p"
+  top: "conv2"
+  param {
+	lr_mult: 1	  
+  }
+  param {
+	lr_mult: 3	  
+  }
+  convolution_param {
+    num_output: 4
+    kernel_size: 9
+    stride: 1
+    weight_filler { type: "xavier" }
+    bias_filler { type: "constant" }
+  }
+}
+layer {
+  name: "sig2en"
+  type: "Sigmoid"
+  bottom: "conv2"
+  top: "conv2"
+}
+layer {
+  name: "ip1encodep"
+  type: "InnerProduct"
+  bottom: "conv2"
+  top: "ip1encodep"
+  param {
+	lr_mult: 1	  
+  }
+  param {
+	lr_mult: 3	  
+  }
+  inner_product_param {
+    num_output: 256
+    weight_filler { type: "gaussian" std: 1 sparse: 25 }
+    bias_filler { type: "constant" }
+  }
+}
+layer {
+  name: "sig3en"
+  type: "Sigmoid"
+  bottom: "ip1encodep"
+  top: "ip1encodep"
+}
+layer {
+  name: "ip2encodep"
+  type: "InnerProduct"
+  bottom: "ip1encodep"
+  top: "ip2encodep"
+  param {
+	lr_mult: 1	  
+  }
+  param {
+	lr_mult: 3	  
+  }
+  inner_product_param {
+    num_output: 256
+    weight_filler { type: "gaussian" std: 1 sparse: 10 }
+    bias_filler { type: "constant" }
   }
 }

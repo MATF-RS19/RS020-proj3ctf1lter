@@ -18,13 +18,17 @@ public:
 
     QImage& toGrayscale(QImage& qim);
     QImage& applySobelFilter(QImage& qim);
+    QImage& applyMedianFilter(QImage &qim);
     static int calculatePixelValueSobel(int j, uchar* output_scan_current,
+                                        uchar* scan_previous, uchar* scan_current, uchar* scan_next);
+    static int calculatePixelValueMedian(int j, uchar* output_scan_current,
                                         uchar* scan_previous, uchar* scan_current, uchar* scan_next);
 
 
 public Q_SLOTS:
     void button_load_clicked();
     void button_sobel_clicked();
+    void button_median_clicked();
 
 
 private:

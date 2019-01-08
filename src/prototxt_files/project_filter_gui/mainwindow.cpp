@@ -7,6 +7,7 @@
 #include <QVector2D>
 #include <QFuture>
 #include <QtConcurrent/QtConcurrentRun>
+#include <algorithm>
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -14,9 +15,14 @@ MainWindow::MainWindow(QWidget *parent) :
 {
     ui->setupUi(this);
 
+    connect(ui->button_load_image, SIGNAL(clicked()), this, SLOT(button_load_clicked()));
+
     connect(ui->button_filter_sobel, SIGNAL(clicked()), this, SLOT(button_sobel_clicked()));
 
-    connect(ui->button_load_image, SIGNAL(clicked()), this, SLOT(button_load_clicked()));
+    connect(ui->button_filter_madian, SIGNAL(clicked()), this, SLOT(button_median_clicked()));
+
+    ui->label4sobel->setMinimumSize(300, 300);
+    ui->label4sobel->setMaximumSize(300, 300);
 }
 
 void MainWindow::button_load_clicked() {
@@ -37,25 +43,6 @@ void MainWindow::button_load_clicked() {
 
 void MainWindow::button_sobel_clicked() {
 
-    set_sobel_image();
-
-}
-
-void MainWindow::set_image() // shows the image in LabeL_image space
-{
-    QPixmap qpm;
-    qpm.convertFromImage(imp.get_image());
-
-    int image_width  = ui->label_image->width();
-    int image_height = ui->label_image->height();
-
-    ui->label_image->setPixmap(qpm.scaled(image_width, image_height, Qt::KeepAspectRatio));
-
-}
-
-void MainWindow::set_sobel_image()
-//calculates and shows the image in LabeL4sobel-space
-{
     QPixmap qpm;
     QImage qim;
     qim = imp.get_image();
@@ -70,6 +57,36 @@ void MainWindow::set_sobel_image()
     int image_height = ui->label4sobel->height();
 
     ui->label4sobel->setPixmap(qpm.scaled(image_width, image_height, Qt::KeepAspectRatio));
+
+
+}
+
+void MainWindow::button_median_clicked() {
+    QPixmap qpm;
+    QImage qim;
+    qim = imp.get_image();
+
+    qim = applyMedianFilter(qim);
+
+    qpm.convertFromImage(qim);
+
+    int image_width  = ui->label4median->width();
+    int image_height = ui->label4median->height();
+
+    ui->label4median->setPixmap(qpm.scaled(image_width, image_height, Qt::KeepAspectRatio));
+
+}
+
+
+void MainWindow::set_image() // shows the image in LabeL_image space
+{
+    QPixmap qpm;
+    qpm.convertFromImage(imp.get_image());
+
+    int image_width  = ui->label_image->width();
+    int image_height = ui->label_image->height();
+
+    ui->label_image->setPixmap(qpm.scaled(image_width, image_height, Qt::KeepAspectRatio));
 
 }
 
@@ -105,6 +122,8 @@ QImage &MainWindow::applySobelFilter(QImage &qim)
     }
 
     QImage qim_copy = qim;
+
+
 
     for (int i = 1; i < qim.height() - 1; i++)
     {
@@ -156,7 +175,7 @@ int MainWindow::calculatePixelValueSobel(int j, uchar* output_scan_current, ucha
     QRgb* bottom_middle = reinterpret_cast<QRgb*>(scan_next     + (j  )*depth);
     QRgb* bottom_right  = reinterpret_cast<QRgb*>(scan_next     + (j+1)*depth);
 
-    QRgb* output_current       = reinterpret_cast<QRgb*>(output_scan_current  + (j  )*depth);
+    QRgb* output_current = reinterpret_cast<QRgb*>(output_scan_current  + (j  )*depth);
 
     tmp[0][0] = qRed(*upper_left); //qRed da bi dohvatio prvu koordinatu/boju, a sve su iste posto je vec grayscale
     tmp[0][1] = qRed(*upper_middle);
@@ -183,7 +202,7 @@ int MainWindow::calculatePixelValueSobel(int j, uchar* output_scan_current, ucha
         }
     }
     int sum = sum_h + sum_v;
-    // za svaki slucaj, mada ne bi trebalo da upadnemo ovde ikad
+    // za svaki slucaj, mada ne bi trebalo da upadnemo ovde ikad -- izgleda da upadamo prilicno cesto
     if(sum > 255)
         sum = 255;
     if(sum < 0)
@@ -193,3 +212,111 @@ int MainWindow::calculatePixelValueSobel(int j, uchar* output_scan_current, ucha
 
     return sum;
 }
+
+QImage &MainWindow::applyMedianFilter(QImage &qim)
+{
+    QImage qim_copy = qim;
+
+    for (int i = 1; i < qim.height() - 1; i++)
+    {
+        uchar* scan_previous = qim_copy.scanLine(i-1);
+        uchar* scan_current = qim_copy.scanLine(i);
+        uchar* scan_next = qim_copy.scanLine(i+1);
+
+        uchar* output_scan_current = qim.scanLine(i);
+
+
+        for (int j = 1; j < qim.width() - 1; j++) {
+
+            //funkcija pravi novi thread svaki put kad je pozvana..
+            //u teoriji bi trebalo da dobijemo neko ubrzanje......
+            QFuture<int> sum = QtConcurrent::run(MainWindow::calculatePixelValueMedian, j, output_scan_current, scan_previous, scan_current, scan_next);
+
+        }
+    }
+    return qim;
+}
+
+int MainWindow::calculatePixelValueMedian(int j, uchar* output_scan_current, uchar* scan_previous, uchar* scan_current, uchar* scan_next)
+{
+
+    int depth =4;
+
+    QRgb* upper_left    = reinterpret_cast<QRgb*>(scan_previous + (j-1)*depth);
+    QRgb* upper_middle  = reinterpret_cast<QRgb*>(scan_previous + (j  )*depth);
+    QRgb* upper_right   = reinterpret_cast<QRgb*>(scan_previous + (j+1)*depth);
+    QRgb* center_left   = reinterpret_cast<QRgb*>(scan_current  + (j-1)*depth);
+    QRgb* current       = reinterpret_cast<QRgb*>(scan_current  + (j  )*depth);
+    QRgb* center_right  = reinterpret_cast<QRgb*>(scan_current  + (j+1)*depth);
+    QRgb* bottom_left   = reinterpret_cast<QRgb*>(scan_next     + (j-1)*depth);
+    QRgb* bottom_middle = reinterpret_cast<QRgb*>(scan_next     + (j  )*depth);
+    QRgb* bottom_right  = reinterpret_cast<QRgb*>(scan_next     + (j+1)*depth);
+
+    QRgb* output_current       = reinterpret_cast<QRgb*>(output_scan_current  + (j  )*depth);
+
+    QVector<int> tmp(8);
+
+    tmp[0] = qRed(*upper_left);
+    tmp[1] = qRed(*upper_middle);
+    tmp[2] = qRed(*upper_right);
+    tmp[3] = qRed(*center_left);
+    auto r = qRed(*current);
+    tmp[4] = qRed(*center_right);
+    tmp[5] = qRed(*bottom_left);
+    tmp[6] = qRed(*bottom_middle);
+    tmp[7] = qRed(*bottom_right);
+
+    auto maxRed = std::max_element(tmp.begin(), tmp.end());
+    auto minRed = std::min_element(tmp.begin(), tmp.end());
+
+    if(r > *maxRed)
+        r = *maxRed;
+    else if (r < *minRed)
+            r = *minRed;
+
+    tmp[0] = qGreen(*upper_left);
+    tmp[1] = qGreen(*upper_middle);
+    tmp[2] = qGreen(*upper_right);
+    tmp[3] = qGreen(*center_left);
+    auto g = qGreen(*current);
+    tmp[4] = qGreen(*center_right);
+    tmp[5] = qGreen(*bottom_left);
+    tmp[6] = qGreen(*bottom_middle);
+    tmp[7] = qGreen(*bottom_right);
+
+    auto maxGreen = std::max_element(tmp.begin(), tmp.end());
+    auto minGreen = std::min_element(tmp.begin(), tmp.end());
+
+    if(g > *maxGreen)
+        g = *maxGreen;
+    else if (g < *minGreen)
+            g = *minGreen;
+
+    tmp[0] = qBlue(*upper_left);
+    tmp[1] = qBlue(*upper_middle);
+    tmp[2] = qBlue(*upper_right);
+    tmp[3] = qBlue(*center_left);
+    auto b = qBlue(*current);
+    tmp[4] = qBlue(*center_right);
+    tmp[5] = qBlue(*bottom_left);
+    tmp[6] = qBlue(*bottom_middle);
+    tmp[7] = qBlue(*bottom_right);
+
+//    auto cetvrti = &tmp[4];
+//    std::nth_element(tmp.begin(), cetvrti, tmp.end());
+
+    auto maxBlue = std::max_element(tmp.begin(), tmp.end());
+    auto minBlue = std::min_element(tmp.begin(), tmp.end());
+
+    if(b > *maxBlue)
+        b = *maxBlue;
+    else if (b < *minBlue)
+            b = *minBlue;
+
+
+    auto a = qAlpha(*current);
+    *output_current = QColor(r, g, b, a).rgba();
+
+    return 0;
+}
+

@@ -7,13 +7,13 @@ layer {
     phase: TRAIN
   }
   transform_param {
-    crop_size: 227
+    scale: 0.0039215684
     mean_file: "../../build/train_mean.binaryproto"
   }
   data_param {
-  	backend: LMDB
     source: "../../build/train_lmdb"
-    batch_size: 3
+    batch_size: 100
+    backend: LMDB
   }
 }
 layer {
@@ -22,214 +22,119 @@ layer {
   top: "data"
   include {
     phase: TEST
+    stage: "test-on-train"
   }
   transform_param {
-    crop_size: 227
+    scale: 0.0039215684
+    mean_file: "../../build/train_mean.binaryproto"
+  }
+  data_param {
+    source: "../../build/train_lmdb"
+    batch_size: 100
+    backend: LMDB
+  }
+}
+layer {
+  name: "data"
+  type: "Data"
+  top: "data"
+  include {
+    phase: TEST
+    stage: "test-on-test"
+  }
+  transform_param {
+    scale: 0.0039215684
     mean_file: "../../build/val_mean.binaryproto"
   }
   data_param {
-  	backend: LMDB
     source: "../../build/val_lmdb"
-    batch_size: 3
+    batch_size: 100
+    backend: LMDB
   }
 }
 layer {
-  name: "conv1"
-  type: "Convolution"
+  name: "flatdata"
+  type: "Flatten"
   bottom: "data"
-  top: "conv1"
+  top: "flatdata"
+}
+layer {
+  name: "encode1"
+  type: "InnerProduct"
+  bottom: "data"
+  top: "encode1"
   param {
-	lr_mult: 1	  
+    lr_mult: 1
+    decay_mult: 1
   }
   param {
-	lr_mult: 3	  
+    lr_mult: 1
+    decay_mult: 0
   }
-  convolution_param {
-    num_output: 96
-    kernel_size: 11
-    stride: 4
-    weight_filler { type: "xavier" }
-    bias_filler { type: "constant" }
+  inner_product_param {
+    num_output: 32
+    weight_filler {
+      type: "gaussian"
+      std: 1
+      sparse: 15
+    }
+    bias_filler {
+      type: "constant"
+      value: 0
+    }
   }
 }
 layer {
-  name: "sig1en"
-  type: "Sigmoid"
-  bottom: "conv1"
-  top: "conv1"
+  name: "encode1neuron"
+  type: "ReLU"
+  bottom: "encode1"
+  top: "encode1neuron"
 }
 layer {
-  name: "conv2"
-  type: "Convolution"
-  bottom: "conv1"
-  top: "conv2"
+  name: "decode1"
+  type: "InnerProduct"
+  bottom: "encode1neuron"
+  top: "decode1"
   param {
-	lr_mult: 1	  
-  }
-  param {
-	lr_mult: 3	  
-  }
-  convolution_param {
-    num_output: 256
-    kernel_size: 5
-	pad: 2
-    stride: 1
-    weight_filler { type: "xavier" }
-    bias_filler { type: "constant" }
-  }
-}
-layer {
-  name: "sig2en"
-  type: "Sigmoid"
-  bottom: "conv2"
-  top: "conv2"
-}
-layer {
-  name: "conv3"
-  type: "Convolution"
-  bottom: "conv2"
-  top: "conv3"
-  param {
-	lr_mult: 1	  
+    lr_mult: 1
+    decay_mult: 1
   }
   param {
-	lr_mult: 3	  
+    lr_mult: 1
+    decay_mult: 0
   }
-  convolution_param {
-    num_output: 256
-    kernel_size: 55
-    weight_filler { type: "xavier" }
-    bias_filler { type: "constant" }
-  }
-}
-layer {
-  name: "sig3en"
-  type: "Sigmoid"
-  bottom: "conv3"
-  top: "conv3"
-}
-layer {
-  name: "reshape"
-  type: "Reshape"
-  bottom: "conv3"
-  top: "sig3en_reshaped"
-  reshape_param { shape { dim: 0 dim: 0 dim: 1 dim: 1 }}
-}
-layer {
-  name: "deconv3"
-  type: "Deconvolution"
-  bottom: "sig3en_reshaped"
-  top: "deconv3"
-  param {
-	lr_mult: 1	  
-  }
-  param {
-	lr_mult: 3	  
-  }
-  convolution_param {
-    num_output: 256
-    kernel_size: 55
-    weight_filler { type: "xavier" }
-    bias_filler { type: "constant" }
+  inner_product_param {
+    num_output: 784
+    weight_filler {
+      type: "gaussian"
+      std: 1
+      sparse: 15
+    }
+    bias_filler {
+      type: "constant"
+      value: 0
+    }
   }
 }
 layer {
-  name: "sig3de"
-  type: "Sigmoid"
-  bottom: "deconv3"
-  top: "deconv3"
-}
-layer {
-  name: "deconv2"
-  type: "Deconvolution"
-  bottom: "deconv3"
-  top: "deconv2"
-  param {
-	lr_mult: 1	  
-  }
-  param {
-	lr_mult: 3	  
-  }
-  convolution_param {
-    num_output: 96
-    kernel_size: 5
-    stride: 1
-	pad: 2
-    weight_filler { type: "xavier" }
-    bias_filler { type: "constant" }
-  }
-}
-layer {
-  name: "sig2de"
-  type: "Sigmoid"
-  bottom: "deconv2"
-  top: "deconv2"
-}
-layer {
-  name: "deconv1"
-  type: "Deconvolution"
-  bottom: "deconv2"
-  top: "deconv1"
-  param {
-	lr_mult: 1	  
-  }
-  param {
-	lr_mult: 3	  
-  }
-  convolution_param {
-    num_output: 3
-    kernel_size: 11
-    stride: 4
-    weight_filler { type: "xavier" }
-    bias_filler { type: "constant" }
-  }
-}
-layer {
-  name: "sig1de"
-  type: "Sigmoid"
-  bottom: "deconv1"
-  top: "deconv1"
-}
-# -- convert back to 784 elements --
-layer {
-  name: "deconv1neur"
-  type: "Deconvolution"
-  bottom: "deconv1"
-  top: "deconv1neur"
-  param {
-	lr_mult: 1	  
-  }
-  param {
-	lr_mult: 3	  
-  }
-  convolution_param {
-    num_output: 3
-    kernel_size: 1
-    stride: 1
-    weight_filler { type: "xavier" }
-    bias_filler { type: "constant" }
-  }
-}
-# --------- calculate loss ---------
-layer {
-  name: "sigm_loss"
+  name: "loss"
   type: "SigmoidCrossEntropyLoss"
-  bottom: "deconv1neur"
-  bottom: "data"
+  bottom: "decode1"
+  bottom: "flatdata"
   top: "cross_entropy_loss"
   loss_weight: 1
 }
 layer {
-  name: "sigDeconv1neur"
+  name: "decode1neuron"
   type: "Sigmoid"
-  bottom: "deconv1neur"
-  top: "sigDeconv1neur"
+  bottom: "decode1"
+  top: "decode1neuron"
 }
 layer {
-  name: "eucl_loss"
+  name: "loss"
   type: "EuclideanLoss"
-  bottom: "data"
-  bottom: "sigDeconv1neur"
+  bottom: "decode1neuron"
+  bottom: "flatdata"
   top: "l2_error"
   loss_weight: 0
 }

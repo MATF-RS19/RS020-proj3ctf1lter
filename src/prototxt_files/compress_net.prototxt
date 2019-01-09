@@ -61,7 +61,7 @@ layer {
 layer {
   name: "encode1"
   type: "InnerProduct"
-  bottom: "data"
+  bottom: "flatdata"
   top: "encode1"
   param {
     lr_mult: 1

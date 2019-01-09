@@ -13,11 +13,34 @@
 #include <ostream>
 
 #define TYPE (0)
-#define OUTPUT_STARTING_IMAGE (0)
+#define OUTPUT_STARTING_IMAGE (1)
 
 #ifdef USE_OPENCV
 using namespace caffe;  // NOLINT(build/namespaces)
 using std::string;
+
+std::vector<float> entering_image;
+int output_entering_image(string file, cv::Mat &img ) {
+
+	img = cv::imread(file, -1); 
+	CHECK(!img.empty()) << "Unable to decode image " << file; 
+
+	//outputing file as if it was being decompressed
+	if(OUTPUT_STARTING_IMAGE) {
+		if (img.isContinuous()) {
+			entering_image.assign((float*)img.datastart, (float*)img.dataend);
+		} else {
+			for (int i = 0; i < img.rows; ++i) {
+				entering_image.insert(entering_image.end(), img.ptr<float>(i), img.ptr<float>(i)+img.cols);
+			}
+		}
+
+		cv::Mat mat_entering_image(img.size().width, img.size().height, TYPE, entering_image.data());
+		cv::imwrite("./entering_image.png", mat_entering_image); 
+	}
+
+	return 1;	
+}
 
 class Compressor {
  public:
@@ -125,8 +148,8 @@ std::vector<float> Compressor::compress(const cv::Mat& img) {
   std::vector<float> compression(begin, end);
 
   if(output_layer->width() > 1 || output_layer->height() > 1) {
-	std::cout << "Deploy.prototxt outputs a image of some sort, storing it as rez.bmp" << std::endl;
-    cv::imwrite("./rez.bmp", cv::Mat(output_layer->width(),output_layer->height(), TYPE, compression.data())); 
+	std::cout << "Deploy.prototxt outputs a image of some sort, storing it as rez.png" << std::endl;
+    cv::imwrite("./rez.png", cv::Mat(output_layer->width(),output_layer->height(), TYPE, compression.data())); 
   }
 
   return compression;
@@ -174,8 +197,9 @@ void Compressor::Preprocess(const cv::Mat& img,
   cv::Mat sample_float;
   if (num_channels_ == 3)
     sample_resized.convertTo(sample_float, CV_32FC3);
-  else
+  else {
     sample_resized.convertTo(sample_float, CV_32FC1);
+  }
 
   cv::Mat sample_normalized;
   cv::subtract(sample_float, mean_, sample_normalized);
@@ -197,14 +221,15 @@ void Compressor::decompress() {
 	float val;
 
 	in >> val;
-	while(val && !in.eof()) {
+	while(!in.eof()) {
 		compression.push_back(val);
 		in >> val;
 	}
 
 	in.close();
 
-	net_->input_blobs()[0]->set_cpu_data( compression.data() );
+	if(compression.data())
+		net_->input_blobs()[0]->set_cpu_data( compression.data() );
 
 	net_->Forward();
 
@@ -215,12 +240,24 @@ void Compressor::decompress() {
 	const float* end = begin + output_layer->count();
 
 	std::vector<float> decompression(begin, end);
+	float* diff = new float[decompression.size()];
+	if(!(decompression.size()==entering_image.size() && decompression.data() && entering_image.data()))
+		std::cout<<"ne valja nesto!!!!"<<std::endl;
+	caffe_sub(decompression.size(), decompression.data(), entering_image.data(), diff);
+	float loss = caffe_cpu_dot(decompression.size(), diff, diff) / 2;
+	std::cout<<"loss is "<<loss<<std::endl;
+
+	delete[] diff;
 
 	if(output_layer->width() > 1 || output_layer->height() > 1) {
-		std::cout << "Saving image as decompression.bmp" << std::endl;
+		std::cout << "Saving image as decompression.png" << std::endl;
 		cv::Mat mat_decompression(output_layer->width(),output_layer->height(), TYPE, decompression.data());
-		cv::imwrite("./decompression.bmp", mat_decompression); 
-  	}
+		cv::imwrite("./decompression.png", mat_decompression); 
+  	} else if(output_layer->channels()>3) {
+		std::cout << "Saving image as decompression.png" << std::endl;
+		cv::Mat mat_decompression((int)sqrt(output_layer->channels()),(int)sqrt(output_layer->channels()), TYPE, decompression.data());
+		cv::imwrite("./decompression.png", mat_decompression); 
+	}
 }
 
 int main(int argc, char** argv) { 
@@ -233,11 +270,15 @@ int main(int argc, char** argv) {
  
   ::google::InitGoogleLogging(argv[0]); 
  
-  if(argc == 4 && argv[1] == std::string("-d")) {
+  if(argc == 5 && argv[1] == std::string("-d")) {
 
   	string model_file   = argv[2]; 
   	string trained_file = argv[3]; 
   	Compressor compressor(model_file, trained_file, ""); 
+
+	string file = argv[4]; 
+	cv::Mat img;
+	CHECK(output_entering_image(file, img)) << "Failed to output entering image";
 
   	compressor.decompress();
 	return 0;
@@ -249,25 +290,9 @@ int main(int argc, char** argv) {
   Compressor compressor(model_file, trained_file, mean_file); 
  
   string file = argv[4]; 
-
-  cv::Mat img = cv::imread(file, -1); 
-  CHECK(!img.empty()) << "Unable to decode image " << file; 
-
-  //outputing file as if it was being decompressed
-  if(OUTPUT_STARTING_IMAGE) { 
-    std::vector<float> entering_image;
-    if (img.isContinuous()) {
-      entering_image.assign((float*)img.datastart, (float*)img.dataend);
-    } else {
-      for (int i = 0; i < img.rows; ++i) {
-        entering_image.insert(entering_image.end(), img.ptr<float>(i), img.ptr<float>(i)+img.cols);
-      }
-    }
-
-    cv::Mat mat_entering_image(img.size().width, img.size().height, TYPE, entering_image.data());
-    cv::imwrite("./entering_image.bmp", mat_entering_image); 
-  }
-
+  cv::Mat img;
+  CHECK(output_entering_image(file, img)) << "Failed to output entering image";
+  
   auto compressed = compressor.compress(img);
 
   std::ofstream out("compressed.txt");

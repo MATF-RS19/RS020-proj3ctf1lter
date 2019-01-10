@@ -96,6 +96,7 @@ vector<float> Compressor::compress(const cv::Mat& img) {
 				 *output_layer = net_->output_blobs()[0];
 	input_layer->Reshape(1, num_channels_,
 						 input_geometry_.height, input_geometry_.width);
+
 	/* Forward dimension change to all layers. */
 	net_->Reshape();
 
@@ -104,7 +105,8 @@ vector<float> Compressor::compress(const cv::Mat& img) {
 
 	preprocess_and_set_image(img, &input_channels);
 
-	float img_dim = input_layer->width();
+	int img_dim = input_layer->width(), size = img_dim*img_dim;
+
 	//save a copy of image vector before compression
 	cv::Mat input_img(img_dim, img_dim, CV_32FC1, input_layer->mutable_cpu_data());
 	net_->Forward();
@@ -113,14 +115,18 @@ vector<float> Compressor::compress(const cv::Mat& img) {
 	cv::Mat decompressed_img(img_dim,img_dim, CV_32FC1, output_layer->mutable_cpu_data());
 	cv::imwrite("./rez.png", decompressed_img); 
 
-    float loss = norm(input_img, decompressed_img, cv::NORM_L2);
+    //float loss = norm(input_img, decompressed_img, cv::NORM_L2);
+	float* diff = new float[size];
+	caffe_sub(img_dim*img_dim, input_layer->cpu_data(), output_layer->cpu_data(), diff);
+	float loss = caffe_cpu_dot(img_dim*img_dim, diff, diff) / 2.0;
+	delete[] diff;
 
-    std::cout << "loss is " << loss << " (check this), img_dim is "<<img_dim << std::endl;
+    std::cout << "loss is " << loss << std::endl;
 
 	shared_ptr<Blob<float>> compression_layer = net_->blob_by_name("encode1");
 
-	const float* begin = compression_layer->cpu_data();
-	const float* end = begin + compression_layer->count();
+	const float* begin = compression_layer->cpu_data(),
+		       * end = begin + compression_layer->count();
 
 	vector<float> compression(begin, end);
 	return compression;

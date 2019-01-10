@@ -117,7 +117,7 @@ vector<float> Compressor::compress(const cv::Mat& img) {
 
     std::cout << "loss is " << loss << " (check this), img_dim is "<<img_dim << std::endl;
 
-	shared_ptr<Blob<float>> compression_layer = net_->blob_by_name("encode1");
+	shared_ptr<Blob<float>> compression_layer = net_->blob_by_name("encode3neuron");
 
 	const float* begin = compression_layer->cpu_data();
 	const float* end = begin + compression_layer->count();

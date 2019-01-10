@@ -19,9 +19,9 @@ public:
     QImage& toGrayscale(QImage& qim);
     QImage& applySobelFilter(QImage& qim);
     QImage& applyMedianFilter(QImage &qim);
-    static int calculatePixelValueSobel(int j, uchar* output_scan_current,
+    static int calculateLineValueSobel(int width, uchar* output_scan_current,
                                         uchar* scan_previous, uchar* scan_current, uchar* scan_next);
-    static int calculatePixelValueMedian(int j, uchar* output_scan_current,
+    static int calculateLineValueMedian(int width, uchar* output_scan_current,
                                         uchar* scan_previous, uchar* scan_current, uchar* scan_next);
 
 

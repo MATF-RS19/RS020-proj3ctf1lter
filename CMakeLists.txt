@@ -10,6 +10,8 @@ SET(CMAKE_EXE_LINKER_FLAGS "-lglog -lboost_system -L/usr/lib/caffe/ -lcaffe")
 
 file(GLOB proj3ctf1lter_SRC 
 	"./src/main.cpp"
+	"./src/net.hpp"
+	"./src/net.cpp"
 )
 
 add_executable(main ${proj3ctf1lter_SRC})

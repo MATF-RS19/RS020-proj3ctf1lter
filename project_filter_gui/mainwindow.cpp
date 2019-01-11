@@ -8,6 +8,10 @@
 #include <QFuture>
 #include <QtConcurrent/QtConcurrentRun>
 #include <algorithm>
+#include <caffe/caffe.hpp>
+#include <opencv2/highgui/highgui.hpp>
+#include <opencv2/imgproc/imgproc.hpp>
+#include "./src/net.hpp"
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -29,7 +33,7 @@ MainWindow::MainWindow(QWidget *parent) :
 void MainWindow::button_load_clicked() {
 
     QString file_name = QFileDialog::getOpenFileName(this, "Open File",
-                                                    "../../../../../../Pictures", //TODO NAPRAVI OVO LEPO DA RADI SVUDA
+                                                    "../../../../Pictures", //TODO NAPRAVI OVO LEPO DA RADI SVUDA
                                                     "Images (*.png *.jpg)");
     if(nullptr == file_name)
     {
@@ -308,13 +312,33 @@ void MainWindow::on_button_filter_compression_clicked()
     if(!qim.isNull()) {
         qim = toGrayscale(qim);
 
-        int img_dim = 32;
+        int img_dim = 28;
 
         if(qim.width() != img_dim|| qim.height()!=img_dim) {
             qim = qim.scaled(img_dim, img_dim, Qt::KeepAspectRatio);
         }
 
+        cv::Mat img(qim.height(), qim.width(),
+                    CV_8UC3, qim.bits(), qim.bytesPerLine());
+
         //apply compression
+        ::google::InitGoogleLogging("compression");
+        Compressor compressor("src/prototxt_files/compress_deploy_output_image.prototxt",
+                              "trained_models/compress_net_iter_65000.caffemodel",
+                              "train_mean.binaryproto");
+
+        std::vector<float> compressed = compressor.compress(img);
+
+        std::ofstream out("compressed.txt");
+
+        for(float a : compressed)
+            out << a << " ";
+
+        std::cout << "---------- Saved compressed file to compressed.txt ----------" << std::endl;
+
+        out.close();
+
+        qpm.convertFromImage(qim);
 
         qpm.convertFromImage(qim);
 

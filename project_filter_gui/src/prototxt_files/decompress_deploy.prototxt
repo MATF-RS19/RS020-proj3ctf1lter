@@ -1,0 +1,110 @@
+name: "Compress_net"
+layer {
+  name: "data"
+  type: "Input"
+  top: "data"
+  input_param {shape: {dim: 1 dim: 1 dim: 256}}
+}
+# --------- decoding part ---------
+layer {
+  name: "reshape"
+  type: "Reshape"
+  bottom: "data"
+  top: "data_reshaped"
+  reshape_param { shape { dim: 1 dim: 256 dim: 1 dim: 1 }}
+}
+layer {
+  name: "deconv3"
+  type: "Deconvolution"
+  bottom: "data_reshaped"
+  top: "deconv3"
+  param {
+	lr_mult: 1	  
+  }
+  param {
+	lr_mult: 3	  
+  }
+  convolution_param {
+    num_output: 256
+    kernel_size: 55
+    weight_filler { type: "xavier" }
+    bias_filler { type: "constant" }
+  }
+}
+layer {
+  name: "sig3de"
+  type: "Sigmoid"
+  bottom: "deconv3"
+  top: "deconv3"
+}
+layer {
+  name: "deconv2"
+  type: "Deconvolution"
+  bottom: "deconv3"
+  top: "deconv2"
+  param {
+	lr_mult: 1	  
+  }
+  param {
+	lr_mult: 3	  
+  }
+  convolution_param {
+    num_output: 96
+    kernel_size: 5
+    stride: 1
+	pad: 2
+    weight_filler { type: "xavier" }
+    bias_filler { type: "constant" }
+  }
+}
+layer {
+  name: "sig2de"
+  type: "Sigmoid"
+  bottom: "deconv2"
+  top: "deconv2"
+}
+layer {
+  name: "deconv1"
+  type: "Deconvolution"
+  bottom: "deconv2"
+  top: "deconv1"
+  param {
+	lr_mult: 1	  
+  }
+  param {
+	lr_mult: 3	  
+  }
+  convolution_param {
+    num_output: 3
+    kernel_size: 11
+    stride: 4
+    weight_filler { type: "xavier" }
+    bias_filler { type: "constant" }
+  }
+}
+layer {
+  name: "sig1de"
+  type: "Sigmoid"
+  bottom: "deconv1"
+  top: "deconv1"
+}
+# -- convert back to 784 elements --
+layer {
+  name: "deconv1neur"
+  type: "Deconvolution"
+  bottom: "deconv1"
+  top: "deconv1neur"
+  param {
+	lr_mult: 1	  
+  }
+  param {
+	lr_mult: 3	  
+  }
+  convolution_param {
+    num_output: 3
+    kernel_size: 1
+    stride: 1
+    weight_filler { type: "xavier" }
+    bias_filler { type: "constant" }
+  }
+}

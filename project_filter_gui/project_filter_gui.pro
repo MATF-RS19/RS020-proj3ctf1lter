@@ -22,15 +22,22 @@ DEFINES += QT_DEPRECATED_WARNINGS
 # You can also select to disable deprecated APIs only up to a certain version of Qt.
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
+CONFIG += link_pkgconfig
+PKGCONFIG += opencv
+
+QMAKE_CXXFLAGS += -DUSE_OPENCV -DCPU_ONLY
+LIBS += -lglog -lboost_system -L/usr/lib/caffe/ -lcaffe
 
 SOURCES += \
         main.cpp \
+        ./src/net.cpp \
         mainwindow.cpp \
-    imageprocessor.cpp
+    imageprocessor.cpp \
 
 HEADERS += \
         mainwindow.h \
-    imageprocessor.h
+    imageprocessor.h \
+       ./src/net.hpp \
 
 FORMS += \
         mainwindow.ui

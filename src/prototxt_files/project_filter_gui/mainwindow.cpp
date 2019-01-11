@@ -48,16 +48,18 @@ void MainWindow::button_sobel_clicked() {
     QImage qim;
     qim = imp.get_image();
 
-    qim = toGrayscale(qim);
+    if(!qim.isNull()) {
+        qim = toGrayscale(qim);
 
-    qim = applySobelFilter(qim);
+        qim = applySobelFilter(qim);
 
-    qpm.convertFromImage(qim);
+        qpm.convertFromImage(qim);
 
-    int image_width  = ui->label4output->width();
-    int image_height = ui->label4output->height();
+        int image_width  = ui->label4output->width();
+        int image_height = ui->label4output->height();
 
-    ui->label4output->setPixmap(qpm.scaled(image_width, image_height, Qt::KeepAspectRatio));
+        ui->label4output->setPixmap(qpm.scaled(image_width, image_height, Qt::KeepAspectRatio));
+    }
 }
 
 void MainWindow::button_median_clicked() {
@@ -65,14 +67,16 @@ void MainWindow::button_median_clicked() {
     QImage qim;
     qim = imp.get_image();
 
-    qim = applyMedianFilter(qim);
+    if(!qim.isNull()) {
+        qim = applyMedianFilter(qim);
 
-    qpm.convertFromImage(qim);
+        qpm.convertFromImage(qim);
 
-    int image_width  = ui->label4output->width();
-    int image_height = ui->label4output->height();
+        int image_width  = ui->label4output->width();
+        int image_height = ui->label4output->height();
 
-    ui->label4output->setPixmap(qpm.scaled(image_width, image_height, Qt::KeepAspectRatio));
+        ui->label4output->setPixmap(qpm.scaled(image_width, image_height, Qt::KeepAspectRatio));
+    }
 }
 
 
@@ -305,14 +309,22 @@ void MainWindow::on_button_filter_compression_clicked()
     QImage qim;
     qim = imp.get_image();
 
-    qim = toGrayscale(qim);
+    if(!qim.isNull()) {
+        qim = toGrayscale(qim);
 
-//    qim = applySobelFilter(qim);
+        if(qim.width() != 32 || qim.height()!=32) {
+            qim = qim.scaled(32,32, Qt::KeepAspectRatio);
+        }
 
-    qpm.convertFromImage(qim);
+        //apply compression
 
-    int image_width  = ui->label4output->width();
-    int image_height = ui->label4output->height();
+        qpm.convertFromImage(qim);
 
-    ui->label4output->setPixmap(qpm.scaled(image_width, image_height, Qt::KeepAspectRatio));
+        int image_width  = ui->label4output->width();
+        int image_height = ui->label4output->height();
+
+        ui->label4output->setPixmap(qpm.scaled(image_width, image_height, Qt::KeepAspectRatio));
+    }
 }
+
+

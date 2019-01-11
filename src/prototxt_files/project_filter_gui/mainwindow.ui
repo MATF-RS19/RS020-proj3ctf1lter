@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>762</width>
-    <height>430</height>
+    <width>655</width>
+    <height>507</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -15,24 +15,24 @@
   </property>
   <widget class="QWidget" name="centralWidget">
    <layout class="QGridLayout" name="gridLayout">
-    <item row="0" column="12" alignment="Qt::AlignRight|Qt::AlignTop">
-     <widget class="QPushButton" name="pushButton_6">
+    <item row="0" column="0">
+     <widget class="QPushButton" name="button_load_image">
       <property name="text">
-       <string>Exit</string>
+       <string>Load Image</string>
       </property>
      </widget>
     </item>
-    <item row="1" column="12" alignment="Qt::AlignRight|Qt::AlignTop">
+    <item row="0" column="5">
      <widget class="QPushButton" name="button_save_image">
       <property name="text">
        <string>Save Image</string>
       </property>
      </widget>
     </item>
-    <item row="2" column="0">
-     <widget class="QLabel" name="label_image">
+    <item row="1" column="1">
+     <widget class="QPushButton" name="button_filter_madian">
       <property name="text">
-       <string>You'll see the original image here!</string>
+       <string>Median FIlter</string>
       </property>
      </widget>
     </item>
@@ -50,24 +50,42 @@
       </property>
      </widget>
     </item>
-    <item row="0" column="0" alignment="Qt::AlignLeft|Qt::AlignTop">
-     <widget class="QPushButton" name="button_load_image">
+    <item row="1" column="4">
+     <widget class="QPushButton" name="button_filter_compression">
       <property name="text">
-       <string>Load Image</string>
+       <string>Compression</string>
       </property>
      </widget>
     </item>
-    <item row="2" column="12" alignment="Qt::AlignRight">
+    <item row="2" column="0" colspan="3">
+     <widget class="QLabel" name="label_image">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
+        <horstretch>0</horstretch>
+        <verstretch>0</verstretch>
+       </sizepolicy>
+      </property>
+      <property name="text">
+       <string>You'll see the original image here!</string>
+      </property>
+      <property name="alignment">
+       <set>Qt::AlignCenter</set>
+      </property>
+     </widget>
+    </item>
+    <item row="2" column="3" colspan="3">
      <widget class="QLabel" name="label4output">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
+        <horstretch>0</horstretch>
+        <verstretch>0</verstretch>
+       </sizepolicy>
+      </property>
       <property name="text">
        <string>You'll see the output image here!</string>
       </property>
-     </widget>
-    </item>
-    <item row="1" column="1">
-     <widget class="QPushButton" name="button_filter_madian">
-      <property name="text">
-       <string>Median FIlter</string>
+      <property name="alignment">
+       <set>Qt::AlignCenter</set>
       </property>
      </widget>
     </item>

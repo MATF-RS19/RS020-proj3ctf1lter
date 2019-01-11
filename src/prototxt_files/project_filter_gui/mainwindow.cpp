@@ -22,14 +22,15 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(ui->button_filter_madian, SIGNAL(clicked()), this, SLOT(button_median_clicked()));
 
     ui->label4output->setMinimumSize(300, 300);
-    ui->label4output->setMaximumSize(300, 300);
+
+    ui->label_image->setMinimumSize(300, 300);
 }
 
 void MainWindow::button_load_clicked() {
 
     QString file_name = QFileDialog::getOpenFileName(this, "Open File",
-                                                    "/home/stra10/Desktop/", //TODO NAPRAVI OVO LEPO DA RADI SVUDA
-                                                    "Images (*.png)");
+                                                    "../../../../../../Pictures", //TODO NAPRAVI OVO LEPO DA RADI SVUDA
+                                                    "Images (*.png *.jpg)");
     if(nullptr == file_name)
     {
         qDebug() << "Nisi dao putanju do fajla, pucam ovde";
@@ -72,7 +73,6 @@ void MainWindow::button_median_clicked() {
     int image_height = ui->label4output->height();
 
     ui->label4output->setPixmap(qpm.scaled(image_width, image_height, Qt::KeepAspectRatio));
-
 }
 
 
@@ -85,7 +85,6 @@ void MainWindow::set_image() // shows the image in LabeL_image space
     int image_height = ui->label_image->height();
 
     ui->label_image->setPixmap(qpm.scaled(image_width, image_height, Qt::KeepAspectRatio));
-
 }
 
 
@@ -148,44 +147,33 @@ QImage &MainWindow::applySobelFilter(QImage &qim) {
 int MainWindow::calculateLineValueSobel(int width, uchar* output_scan_current,
                                          uchar* scan_previous, uchar* scan_current, uchar* scan_next)
 {
+    int depth = 4;
+
+    QVector<QVector<int>> sobel_horizontal = {{ -1,  -2,  -1},
+                                              {  0,   0,   0},
+                                              {  1,   2,   1}};
+
+    QVector<QVector<int>> sobel_vertical   = {{ -1,  0,  1},
+                                               {-2,  0,  2},
+                                               {-1,  0,  1}};
+
+    QVector<QVector<int>> tmp =  {{ 0,  0,  0},
+                                  { 0,  0,  0},
+                                  { 0,  0,  0}};
+
     for (int j = 1; j < width; ++j) {
 
-        int depth = 4;
-
-        QVector<QVector<int>> sobel_horizontal = {{ -1,  -2,  -1},
-                                                  {  0,   0,   0},
-                                                  {  1,   2,   1}};
-
-        QVector<QVector<int>> sobel_vertical   = {{ -1,  0,  1},
-                                                   {-2,  0,  2},
-                                                   {-1,  0,  1}};
-
-        QVector<QVector<int>> tmp;
-                              tmp =  {{ 0,  0,  0},
-                                      { 0,  0,  0},
-                                      { 0,  0,  0}};
-
-        QRgb* upper_left    = reinterpret_cast<QRgb*>(scan_previous + (j-1)*depth);
-        QRgb* upper_middle  = reinterpret_cast<QRgb*>(scan_previous + (j  )*depth);
-        QRgb* upper_right   = reinterpret_cast<QRgb*>(scan_previous + (j+1)*depth);
-        QRgb* center_left   = reinterpret_cast<QRgb*>(scan_current  + (j-1)*depth);
-        QRgb* current       = reinterpret_cast<QRgb*>(scan_current  + (j  )*depth);
-        QRgb* center_right  = reinterpret_cast<QRgb*>(scan_current  + (j+1)*depth);
-        QRgb* bottom_left   = reinterpret_cast<QRgb*>(scan_next     + (j-1)*depth);
-        QRgb* bottom_middle = reinterpret_cast<QRgb*>(scan_next     + (j  )*depth);
-        QRgb* bottom_right  = reinterpret_cast<QRgb*>(scan_next     + (j+1)*depth);
 
         QRgb* output_current = reinterpret_cast<QRgb*>(output_scan_current  + (j  )*depth);
 
-        tmp[0][0] = qRed(*upper_left); //qRed da bi dohvatio prvu koordinatu/boju, a sve su iste posto je vec grayscale
-        tmp[0][1] = qRed(*upper_middle);
-        tmp[0][2] = qRed(*upper_right);
-        tmp[1][0] = qRed(*center_left);
-        tmp[1][1] = qRed(*current);
-        tmp[1][2] = qRed(*center_right);
-        tmp[2][0] = qRed(*bottom_left);
-        tmp[2][1] = qRed(*bottom_middle);
-        tmp[2][2] = qRed(*bottom_right);
+        //qRed da bi dohvatio prvu koordinatu/boju, a sve su iste posto je vec grayscale
+        for (int i = -1; i < 2; ++i)
+            tmp[0][i+1] = qRed(*reinterpret_cast<QRgb*>(scan_previous + (j+i)*depth));
+        tmp[1][0] = qRed(*reinterpret_cast<QRgb*>(scan_current  + (j-1)*depth));
+        tmp[1][1] = qRed(*reinterpret_cast<QRgb*>(scan_current  + (j  )*depth));
+        tmp[1][2] = qRed(*reinterpret_cast<QRgb*>(scan_current  + (j+1)*depth));
+        for (int i = -1; i < 2; ++i)
+            tmp[2][i+1] = qRed(*reinterpret_cast<QRgb*>(scan_next + (j+i)*depth));
 
         //postavili smo tmp matricu na svoje vrednosti, jos samo da izracunamo
         //sta da stavimo na current position i to je to
@@ -209,7 +197,6 @@ int MainWindow::calculateLineValueSobel(int width, uchar* output_scan_current,
             sum = 0;
 
         *output_current = QColor(sum, sum, sum).rgba();
-
     }
 
     return 0;
@@ -244,6 +231,7 @@ QImage &MainWindow::applyMedianFilter(QImage &qim)
     for(auto future : futures) {
         future.waitForFinished();
     }
+
     return qim;
 }
 
@@ -299,3 +287,32 @@ int MainWindow::calculateLineValueMedian(int width, uchar* output_scan_current, 
     return 0;
 }
 
+void MainWindow::on_button_save_image_clicked()
+{
+    QString file_name = QFileDialog::getSaveFileName(this, "Save File",
+                                                         "~/Pictures/filtered_image.jpg");
+
+    QPixmap const* pix = ui->label4output->pixmap();
+    if(pix) {
+        QImage image(pix->toImage());
+        image.save(file_name);
+    }
+}
+
+void MainWindow::on_button_filter_compression_clicked()
+{
+    QPixmap qpm;
+    QImage qim;
+    qim = imp.get_image();
+
+    qim = toGrayscale(qim);
+
+//    qim = applySobelFilter(qim);
+
+    qpm.convertFromImage(qim);
+
+    int image_width  = ui->label4output->width();
+    int image_height = ui->label4output->height();
+
+    ui->label4output->setPixmap(qpm.scaled(image_width, image_height, Qt::KeepAspectRatio));
+}

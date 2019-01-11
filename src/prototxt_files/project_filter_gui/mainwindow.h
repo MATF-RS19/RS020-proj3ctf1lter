@@ -31,6 +31,11 @@ public Q_SLOTS:
     void button_median_clicked();
 
 
+private slots:
+    void on_button_save_image_clicked();
+
+    void on_button_filter_compression_clicked();
+
 private:
     Ui::MainWindow *ui;
     ImageProcessor imp;

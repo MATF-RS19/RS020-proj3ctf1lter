@@ -161,38 +161,33 @@ int MainWindow::calculateLineValueSobel(int width, uchar* output_scan_current,
                                                {-2,  0,  2},
                                                {-1,  0,  1}};
 
-    QVector<QVector<int>> tmp =  {{ 0,  0,  0},
-                                  { 0,  0,  0},
-                                  { 0,  0,  0}};
+    int tmp;
 
     for (int j = 1; j < width; ++j) {
-
-
-        QRgb* output_current = reinterpret_cast<QRgb*>(output_scan_current  + (j  )*depth);
-
-        //qRed da bi dohvatio prvu koordinatu/boju, a sve su iste posto je vec grayscale
-        for (int i = -1; i < 2; ++i)
-            tmp[0][i+1] = qRed(*reinterpret_cast<QRgb*>(scan_previous + (j+i)*depth));
-        tmp[1][0] = qRed(*reinterpret_cast<QRgb*>(scan_current  + (j-1)*depth));
-        tmp[1][1] = qRed(*reinterpret_cast<QRgb*>(scan_current  + (j  )*depth));
-        tmp[1][2] = qRed(*reinterpret_cast<QRgb*>(scan_current  + (j+1)*depth));
-        for (int i = -1; i < 2; ++i)
-            tmp[2][i+1] = qRed(*reinterpret_cast<QRgb*>(scan_next + (j+i)*depth));
-
-        //postavili smo tmp matricu na svoje vrednosti, jos samo da izracunamo
-        //sta da stavimo na current position i to je to
 
         int sum_h = 0;
         int sum_v = 0;
 
-        for(int p = 0; p < 3; p++)
-        {
-            for(int q = 0; q < 3; q++)
-            {
-                sum_h += tmp[p][q] * sobel_horizontal[p][q];
-                sum_v += tmp[p][q] * sobel_vertical[p][q];
-            }
+        //qRed da bi dohvatio prvu koordinatu/boju, a sve su iste posto je vec grayscale
+
+        //postavili smo tmp matricu na svoje vrednosti, jos samo da izracunamo
+        //sta da stavimo na current position i to je to
+        for (int i = -1; i < 2; ++i) {
+            tmp = qRed(*reinterpret_cast<QRgb*>(scan_previous + (j+i)*depth));
+            sum_h += tmp * sobel_horizontal[0][i+1];
+            sum_v += tmp * sobel_vertical[0][i+1];
         }
+        for (int i = -1; i < 2; ++i) {
+            tmp = qRed(*reinterpret_cast<QRgb*>(scan_current + (j+i)*depth));
+            sum_h += tmp * sobel_horizontal[1][i+1];
+            sum_v += tmp * sobel_vertical[1][i+1];
+        }
+        for (int i = -1; i < 2; ++i) {
+            tmp = qRed(*reinterpret_cast<QRgb*>(scan_next + (j+i)*depth));
+            sum_h += tmp * sobel_horizontal[2][i+1];
+            sum_v += tmp * sobel_vertical[2][i+1];
+        }
+
         int sum = sum_h + sum_v;
         // za svaki slucaj, mada ne bi trebalo da upadnemo ovde ikad -- izgleda da upadamo prilicno cesto
         if(sum > 255)
@@ -200,6 +195,7 @@ int MainWindow::calculateLineValueSobel(int width, uchar* output_scan_current,
         if(sum < 0)
             sum = 0;
 
+        QRgb* output_current = reinterpret_cast<QRgb*>(output_scan_current  + (j  )*depth);
         *output_current = QColor(sum, sum, sum).rgba();
     }
 
@@ -312,8 +308,10 @@ void MainWindow::on_button_filter_compression_clicked()
     if(!qim.isNull()) {
         qim = toGrayscale(qim);
 
-        if(qim.width() != 32 || qim.height()!=32) {
-            qim = qim.scaled(32,32, Qt::KeepAspectRatio);
+        int img_dim = 32;
+
+        if(qim.width() != img_dim|| qim.height()!=img_dim) {
+            qim = qim.scaled(img_dim, img_dim, Qt::KeepAspectRatio);
         }
 
         //apply compression
@@ -327,4 +325,92 @@ void MainWindow::on_button_filter_compression_clicked()
     }
 }
 
+QImage &MainWindow::applyGaussianFilter(QImage &qim) {
+
+    QImage qim_copy = qim;
+
+    uchar* scan_previous = qim_copy.scanLine(0);
+    uchar* scan_current = qim_copy.scanLine(1);
+    uchar* scan_next = qim_copy.scanLine(2);
+
+    QList<QFuture<void> > futures;
+    for (int i = 1; i < qim.height() - 1; i++)
+    {
+        uchar* output_scan_current = qim.scanLine(i);
+
+        auto future = QtConcurrent::run(MainWindow::calculateLineValueGauss, qim.width() - 1,
+                                             output_scan_current, scan_previous, scan_current, scan_next);
+
+        futures.append(future);
+
+        scan_previous = scan_current;
+        scan_current = scan_next;
+        scan_next = qim_copy.scanLine(i+2);
+    }
+
+    for(auto future : futures) {
+        future.waitForFinished();
+    }
+
+    return qim;
+}
+
+void MainWindow::on_button_filter_gauss_clicked() {
+    QPixmap qpm;
+    QImage qim;
+    qim = imp.get_image();
+
+    if(!qim.isNull()) {
+        qim = applyGaussianFilter(qim);
+
+        qpm.convertFromImage(qim);
+
+        int image_width  = ui->label4output->width();
+        int image_height = ui->label4output->height();
+
+        ui->label4output->setPixmap(qpm.scaled(image_width, image_height, Qt::KeepAspectRatio));
+    }
+}
+
+int MainWindow::calculateLineValueGauss(int width, uchar* output_scan_current,
+                                         uchar* scan_previous, uchar* scan_current, uchar* scan_next)
+{
+    int depth = 4;
+
+    QVector<QVector<float>> gauss = {{  1.0/16,  2.0/16,   1.0/16},
+                                     {  2.0/16,  4.0/16,   2.0/16},
+                                     {  1.0/16,  2.0/16,   1.0/16}};
+    QRgb* pixel;
+
+    for (int j = 1; j < width; ++j) {
+
+        int red    = 0,
+            green  = 0,
+            blue   = 0;
+
+        for (int i = -1; i < 2; ++i) {
+            pixel   = reinterpret_cast<QRgb*>(scan_previous + (j+i)*depth);
+            red    += (int) (qRed(  *pixel)   * gauss[0][i+1]),
+            green  += (int) (qGreen(*pixel)   * gauss[0][i+1]),
+            blue   += (int) (qBlue( *pixel)   * gauss[0][i+1]);
+        }
+        for (int i = -1; i < 2; ++i) {
+            pixel   =  reinterpret_cast<QRgb*>(scan_current+ (j+i)*depth);
+            red    += (int) (qRed(  *pixel)   * gauss[1][i+1]),
+            green  += (int) (qGreen(*pixel)   * gauss[1][i+1]),
+            blue   += (int) (qBlue( *pixel)   * gauss[1][i+1]);
+        }
+        for (int i = -1; i < 2; ++i) {
+            pixel   =  reinterpret_cast<QRgb*>(scan_next + (j+i)*depth);
+            red    += (int) (qRed(  *pixel)   * gauss[2][i+1]),
+            green  += (int) (qGreen(*pixel)   * gauss[2][i+1]),
+            blue   += (int) (qBlue( *pixel)   * gauss[2][i+1]);
+        }
+
+        QRgb* output_current = reinterpret_cast<QRgb*>(output_scan_current  + (j  )*depth);
+        *output_current = QColor(red, green, blue).rgba();
+    }
+
+    return 0;
+}
 

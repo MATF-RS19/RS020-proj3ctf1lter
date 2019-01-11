@@ -19,9 +19,12 @@ public:
     QImage& toGrayscale(QImage& qim);
     QImage& applySobelFilter(QImage& qim);
     QImage& applyMedianFilter(QImage &qim);
+    QImage& applyGaussianFilter(QImage &qim);
     static int calculateLineValueSobel(int width, uchar* output_scan_current,
                                         uchar* scan_previous, uchar* scan_current, uchar* scan_next);
     static int calculateLineValueMedian(int width, uchar* output_scan_current,
+                                        uchar* scan_previous, uchar* scan_current, uchar* scan_next);
+    static int calculateLineValueGauss(int width, uchar* output_scan_current,
                                         uchar* scan_previous, uchar* scan_current, uchar* scan_next);
 
 
@@ -35,6 +38,8 @@ private slots:
     void on_button_save_image_clicked();
 
     void on_button_filter_compression_clicked();
+
+    void on_button_filter_gauss_clicked();
 
 private:
     Ui::MainWindow *ui;

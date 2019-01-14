@@ -19,12 +19,23 @@ public:
     QImage& toGrayscale(QImage& qim);
     QImage& applySobelFilter(QImage& qim);
     QImage& applyMedianFilter(QImage &qim);
+    QImage& applySharpeningFilter(QImage &qim);
+    QImage& applyBlurFilter(QImage &qim);
+    QImage& applyEmbossFilter(QImage &qim);
+
+
     QImage& applyGaussianFilter(QImage &qim);
     static int calculateLineValueSobel(int width, uchar* output_scan_current,
                                         uchar* scan_previous, uchar* scan_current, uchar* scan_next);
     static int calculateLineValueMedian(int width, uchar* output_scan_current,
                                         uchar* scan_previous, uchar* scan_current, uchar* scan_next);
+    static int calculateLineValueSharpening(int width, uchar* output_scan_current,
+                                        uchar* scan_previous, uchar* scan_current, uchar* scan_next);
+    static int calculateLineValueBlur(int width, uchar* output_scan_current,
+                                        uchar* scan_previous, uchar* scan_current, uchar* scan_next);
     static int calculateLineValueGauss(int width, uchar* output_scan_current,
+                                        uchar* scan_previous, uchar* scan_current, uchar* scan_next);
+    static int calculateLineValueEmboss(int width, uchar* output_scan_current,
                                         uchar* scan_previous, uchar* scan_current, uchar* scan_next);
 
 
@@ -32,6 +43,9 @@ public Q_SLOTS:
     void button_load_clicked();
     void button_sobel_clicked();
     void button_median_clicked();
+    void button_sharpening_clicked();
+    void button_blur_clicked();
+    void button_emboss_clicked();
 
 
 private slots:

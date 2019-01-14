@@ -25,6 +25,14 @@ MainWindow::MainWindow(QWidget *parent) :
 
     connect(ui->button_filter_madian, SIGNAL(clicked()), this, SLOT(button_median_clicked()));
 
+    connect(ui->button_filter_sharpening, SIGNAL(clicked()), this, SLOT(button_sharpening_clicked()));
+
+    connect(ui->button_filter_blur, SIGNAL(clicked()), this, SLOT(button_blur_clicked()));
+
+    connect(ui->button_filter_emboss, SIGNAL(clicked()), this, SLOT(button_emboss_clicked()));
+
+
+
     ui->label4output->setMinimumSize(300, 300);
 
     ui->label_image->setMinimumSize(300, 300);
@@ -83,6 +91,61 @@ void MainWindow::button_median_clicked() {
     }
 }
 
+void MainWindow::button_sharpening_clicked()
+{
+    QPixmap qpm;
+    QImage qim;
+    qim = imp.get_image();
+
+    if(!qim.isNull()) {
+        qim = applySharpeningFilter(qim);
+
+        qpm.convertFromImage(qim);
+
+        int image_width  = ui->label4output->width();
+        int image_height = ui->label4output->height();
+
+        ui->label4output->setPixmap(qpm.scaled(image_width, image_height, Qt::KeepAspectRatio));
+    }
+}
+
+void MainWindow::button_blur_clicked()
+{
+    QPixmap qpm;
+    QImage qim;
+    qim = imp.get_image();
+
+    if(!qim.isNull()) {
+        qim = applyBlurFilter(qim);
+
+        qpm.convertFromImage(qim);
+
+        int image_width  = ui->label4output->width();
+        int image_height = ui->label4output->height();
+
+        ui->label4output->setPixmap(qpm.scaled(image_width, image_height, Qt::KeepAspectRatio));
+    }
+}
+
+void MainWindow::button_emboss_clicked()
+{
+    QPixmap qpm;
+    QImage qim;
+    qim = imp.get_image();
+
+    if(!qim.isNull()) {
+        qim = applyEmbossFilter(qim);
+
+        qpm.convertFromImage(qim);
+
+        int image_width  = ui->label4output->width();
+        int image_height = ui->label4output->height();
+
+        ui->label4output->setPixmap(qpm.scaled(image_width, image_height, Qt::KeepAspectRatio));
+    }
+
+}
+
 
 void MainWindow::set_image() // shows the image in LabeL_image space
 {
@@ -110,7 +173,7 @@ QImage &MainWindow::toGrayscale(QImage &qim)
         for (int j = 0; j < qim.width(); j++) {
             QRgb* rgbpixel = reinterpret_cast<QRgb*>(scan + j*depth);
             int gray = qGray(*rgbpixel);
-            *rgbpixel = QColor(gray, gray, gray).rgba();
+            *rgbpixel = QColor(gray, gray, gray, qAlpha(*rgbpixel)).rgba();
         }
     }
 
@@ -118,6 +181,7 @@ QImage &MainWindow::toGrayscale(QImage &qim)
 }
 
 QImage &MainWindow::applySobelFilter(QImage &qim) {
+
     if(!(qim.isGrayscale()))
     {
         qDebug() << "The QImage I got here is not a grayscale image, so there is no way I'm doing the Sobel!" ;
@@ -165,6 +229,9 @@ int MainWindow::calculateLineValueSobel(int width, uchar* output_scan_current,
                                                {-2,  0,  2},
                                                {-1,  0,  1}};
 
+   //sobel_vertical = {{1,01,01}, {01, 1, 01}, {01, 01, 01}};
+   //sobel_horizontal ={{0,0,0}, {0, 0, 0}, {0, 0, 0}} ;
+
     int tmp;
 
     for (int j = 1; j < width; ++j) {
@@ -199,8 +266,9 @@ int MainWindow::calculateLineValueSobel(int width, uchar* output_scan_current,
         if(sum < 0)
             sum = 0;
 
+        QRgb* pomocna = (reinterpret_cast<QRgb*>(scan_current  + (j  )*depth));
         QRgb* output_current = reinterpret_cast<QRgb*>(output_scan_current  + (j  )*depth);
-        *output_current = QColor(sum, sum, sum).rgba();
+        *output_current = QColor(sum, sum, sum, qAlpha(*pomocna)).rgba();
     }
 
     return 0;
@@ -238,6 +306,251 @@ QImage &MainWindow::applyMedianFilter(QImage &qim)
 
     return qim;
 }
+
+
+QImage &MainWindow::applySharpeningFilter(QImage &qim)
+{
+    QImage qim_copy = qim;
+
+    uchar* scan_previous = qim_copy.scanLine(0);
+    uchar* scan_current  = qim_copy.scanLine(1);
+    uchar* scan_next     = qim_copy.scanLine(2);
+
+    QList<QFuture<void> > futures;
+
+    for (int i = 1; i < qim.height() - 1; i++)
+    {
+        uchar* output_scan_current = qim.scanLine(i);
+
+        //funkcija pravi novi thread svaki put kad je pozvana..
+        //u teoriji bi trebalo da dobijemo neko ubrzanje......
+        auto future = QtConcurrent::run(MainWindow::calculateLineValueSharpening, qim.width()-1,
+                           output_scan_current, scan_previous, scan_current, scan_next);
+
+        futures.append(future);
+
+        scan_previous = scan_current;
+        scan_current  = scan_next;
+        scan_next     = qim_copy.scanLine(i+2);
+    }
+
+    for(auto future : futures) {
+        future.waitForFinished();
+    }
+
+    return qim;
+}
+
+QImage &MainWindow::applyBlurFilter(QImage &qim)
+{
+    QImage qim_copy = qim;
+
+    uchar* scan_previous = qim_copy.scanLine(0);
+    uchar* scan_current  = qim_copy.scanLine(1);
+    uchar* scan_next     = qim_copy.scanLine(2);
+
+    QList<QFuture<void> > futures;
+
+    for (int i = 1; i < qim.height() - 1; i++)
+    {
+        uchar* output_scan_current = qim.scanLine(i);
+
+        //funkcija pravi novi thread svaki put kad je pozvana..
+        //u teoriji bi trebalo da dobijemo neko ubrzanje......
+        auto future = QtConcurrent::run(MainWindow::calculateLineValueBlur, qim.width()-1,
+                           output_scan_current, scan_previous, scan_current, scan_next);
+
+        futures.append(future);
+
+        scan_previous = scan_current;
+        scan_current  = scan_next;
+        scan_next     = qim_copy.scanLine(i+2);
+    }
+
+    for(auto future : futures) {
+        future.waitForFinished();
+    }
+
+    return qim;
+}
+
+QImage &MainWindow::applyEmbossFilter(QImage &qim)
+{
+    QImage qim_copy = qim;
+
+    uchar* scan_previous = qim_copy.scanLine(0);
+    uchar* scan_current  = qim_copy.scanLine(1);
+    uchar* scan_next     = qim_copy.scanLine(2);
+
+    QList<QFuture<void> > futures;
+
+    for (int i = 1; i < qim.height() - 1; i++)
+    {
+        uchar* output_scan_current = qim.scanLine(i);
+
+        //funkcija pravi novi thread svaki put kad je pozvana..
+        //u teoriji bi trebalo da dobijemo neko ubrzanje......
+        auto future = QtConcurrent::run(MainWindow::calculateLineValueEmboss, qim.width()-1,
+                           output_scan_current, scan_previous, scan_current, scan_next);
+
+        futures.append(future);
+
+        scan_previous = scan_current;
+        scan_current  = scan_next;
+        scan_next     = qim_copy.scanLine(i+2);
+    }
+
+    for(auto future : futures) {
+        future.waitForFinished();
+    }
+
+    return qim;
+}
+int MainWindow::calculateLineValueSharpening(int width, uchar* output_scan_current, uchar* scan_previous, uchar* scan_current, uchar* scan_next)
+{
+    int depth = 4;
+
+    QVector<QVector<int>> sharpening_matrix = {{ -1,  -1,  -1},
+                                               { -1,   9,  -1},
+                                               { -1,  -1,  -1}};
+
+    for (int j = 1; j < width; ++j) {
+
+        int sum_red = 0, sum_green = 0, sum_blue = 0;
+
+        //qRed da bi dohvatio prvu koordinatu/boju, a sve su iste posto je vec grayscale
+
+        //postavili smo tmp matricu na svoje vrednosti, jos samo da izracunamo
+        //sta da stavimo na current position i to je to
+        for (int i = -1; i < 2; ++i) {
+            auto r = qRed(*reinterpret_cast<QRgb*>(scan_previous + (j+i)*depth));
+            auto g = qGreen(*reinterpret_cast<QRgb*>(scan_previous + (j+i)*depth));
+            auto b = qBlue(*reinterpret_cast<QRgb*>(scan_previous + (j+i)*depth));
+
+            sum_red   += r * sharpening_matrix[0][i+1];
+            sum_blue  += b * sharpening_matrix[0][i+1];
+            sum_green += g * sharpening_matrix[0][i+1];
+
+        }
+        for (int i = -1; i < 2; ++i) {
+            auto r = qRed(*reinterpret_cast<QRgb*>(scan_previous + (j+i)*depth));
+            auto g = qGreen(*reinterpret_cast<QRgb*>(scan_previous + (j+i)*depth));
+            auto b = qBlue(*reinterpret_cast<QRgb*>(scan_previous + (j+i)*depth));
+
+            sum_red   += r * sharpening_matrix[1][i+1];
+            sum_blue  += b * sharpening_matrix[1][i+1];
+            sum_green += g * sharpening_matrix[1][i+1];
+
+        }
+        for (int i = -1; i < 2; ++i) {
+            auto r = qRed(*reinterpret_cast<QRgb*>(scan_previous + (j+i)*depth));
+            auto g = qGreen(*reinterpret_cast<QRgb*>(scan_previous + (j+i)*depth));
+            auto b = qBlue(*reinterpret_cast<QRgb*>(scan_previous + (j+i)*depth));
+
+            sum_red   += r * sharpening_matrix[2][i+1];
+            sum_blue  += b * sharpening_matrix[2][i+1];
+            sum_green += g * sharpening_matrix[2][i+1];
+
+        }
+
+        // za svaki slucaj, mada ne bi trebalo da upadnemo ovde ikad -- izgleda da upadamo prilicno cesto
+        if(sum_red > 255)
+            sum_red = 255;
+        if(sum_red < 0)
+            sum_red = 0;
+
+        if(sum_blue > 255)
+            sum_blue = 255;
+        if(sum_blue < 0)
+            sum_blue = 0;
+
+        if(sum_blue > 255)
+            sum_blue = 255;
+        if(sum_blue < 0)
+            sum_blue = 0;
+
+        QRgb* pomocna = (reinterpret_cast<QRgb*>(scan_current  + (j  )*depth)); //sluzi da sacuvamo alfa kanal tekuceg piksela, da bude kakav je bio
+        QRgb* output_current = reinterpret_cast<QRgb*>(output_scan_current  + (j  )*depth);
+        *output_current = QColor(sum_red, sum_green, sum_blue, qAlpha(*pomocna)).rgba();
+    }
+
+    return 0;
+}
+
+int MainWindow::calculateLineValueBlur(int width, uchar *output_scan_current, uchar *scan_previous, uchar *scan_current, uchar *scan_next)
+{
+    int depth = 4;
+
+
+    QVector<QVector<double>> blur_matrix = {        { 0,    0.2,  0},
+                                                    { 0.2,  0.2,  0.2},
+                                                    { 0,    0.2,  0}};
+
+
+    for (int j = 1; j < width; ++j) {
+
+        int sum_red = 0, sum_green = 0, sum_blue = 0;
+
+        //qRed da bi dohvatio prvu koordinatu/boju, a sve su iste posto je vec grayscale
+
+        //postavili smo tmp matricu na svoje vrednosti, jos samo da izracunamo
+        //sta da stavimo na current position i to je to
+        for (int i = -1; i < 2; ++i) {
+            auto r = qRed(*reinterpret_cast<QRgb*>(scan_previous + (j+i)*depth));
+            auto g = qGreen(*reinterpret_cast<QRgb*>(scan_previous + (j+i)*depth));
+            auto b = qBlue(*reinterpret_cast<QRgb*>(scan_previous + (j+i)*depth));
+
+            sum_red += r * blur_matrix[0][i+1];
+            sum_blue += b * blur_matrix[0][i+1];
+            sum_green += g * blur_matrix[0][i+1];
+
+        }
+        for (int i = -1; i < 2; ++i) {
+            auto r = qRed(*reinterpret_cast<QRgb*>(scan_previous + (j+i)*depth));
+            auto g = qGreen(*reinterpret_cast<QRgb*>(scan_previous + (j+i)*depth));
+            auto b = qBlue(*reinterpret_cast<QRgb*>(scan_previous + (j+i)*depth));
+
+            sum_red += r * blur_matrix[1][i+1];
+            sum_blue += b * blur_matrix[1][i+1];
+            sum_green += g * blur_matrix[1][i+1];
+
+        }
+        for (int i = -1; i < 2; ++i) {
+            auto r = qRed(*reinterpret_cast<QRgb*>(scan_previous + (j+i)*depth));
+            auto g = qGreen(*reinterpret_cast<QRgb*>(scan_previous + (j+i)*depth));
+            auto b = qBlue(*reinterpret_cast<QRgb*>(scan_previous + (j+i)*depth));
+
+            sum_red += r * blur_matrix[2][i+1];
+            sum_blue += b * blur_matrix[2][i+1];
+            sum_green += g * blur_matrix[2][i+1];
+
+        }
+
+        // za svaki slucaj, mada ne bi trebalo da upadnemo ovde ikad -- izgleda da upadamo prilicno cesto
+        if(sum_red > 255)
+            sum_red = 255;
+        if(sum_red < 0)
+            sum_red = 0;
+
+        if(sum_blue > 255)
+            sum_blue = 255;
+        if(sum_blue < 0)
+            sum_blue = 0;
+
+        if(sum_blue > 255)
+            sum_blue = 255;
+        if(sum_blue < 0)
+            sum_blue = 0;
+
+        QRgb* pomocna = (reinterpret_cast<QRgb*>(scan_current  + (j  )*depth)); //sluzi da sacuvamo alfa kanal tekuceg piksela, da bude kakav je bio
+        QRgb* output_current = reinterpret_cast<QRgb*>(output_scan_current  + (j  )*depth);
+        *output_current = QColor(sum_red, sum_green, sum_blue, qAlpha(*pomocna)).rgba();
+    }
+
+    return 0;
+
+}
+
 
 int MainWindow::calculateLineValueMedian(int width, uchar* output_scan_current, uchar* scan_previous, uchar* scan_current, uchar* scan_next)
 {
@@ -436,5 +749,79 @@ int MainWindow::calculateLineValueGauss(int width, uchar* output_scan_current,
     }
 
     return 0;
+}
+
+int MainWindow::calculateLineValueEmboss(int width, uchar *output_scan_current, uchar *scan_previous, uchar *scan_current, uchar *scan_next)
+{
+    int depth = 4;
+
+
+    QVector<QVector<double>> blur_matrix = {        { -1, -1,  0},
+                                                    { -1,  0,  1},
+                                                    { 0,   1,  1}};
+
+
+    for (int j = 1; j < width; ++j) {
+
+        int sum_red = 0, sum_green = 0, sum_blue = 0;
+
+        //qRed da bi dohvatio prvu koordinatu/boju, a sve su iste posto je vec grayscale
+
+        //postavili smo tmp matricu na svoje vrednosti, jos samo da izracunamo
+        //sta da stavimo na current position i to je to
+        for (int i = -1; i < 2; ++i) {
+            auto r = qRed(*reinterpret_cast<QRgb*>(scan_previous + (j+i)*depth));
+            auto g = qGreen(*reinterpret_cast<QRgb*>(scan_previous + (j+i)*depth));
+            auto b = qBlue(*reinterpret_cast<QRgb*>(scan_previous + (j+i)*depth));
+
+            sum_red += r * blur_matrix[0][i+1];
+            sum_blue += b * blur_matrix[0][i+1];
+            sum_green += g * blur_matrix[0][i+1];
+
+        }
+        for (int i = -1; i < 2; ++i) {
+            auto r = qRed(*reinterpret_cast<QRgb*>(scan_previous + (j+i)*depth));
+            auto g = qGreen(*reinterpret_cast<QRgb*>(scan_previous + (j+i)*depth));
+            auto b = qBlue(*reinterpret_cast<QRgb*>(scan_previous + (j+i)*depth));
+
+            sum_red += r * blur_matrix[1][i+1];
+            sum_blue += b * blur_matrix[1][i+1];
+            sum_green += g * blur_matrix[1][i+1];
+
+        }
+        for (int i = -1; i < 2; ++i) {
+            auto r = qRed(*reinterpret_cast<QRgb*>(scan_previous + (j+i)*depth));
+            auto g = qGreen(*reinterpret_cast<QRgb*>(scan_previous + (j+i)*depth));
+            auto b = qBlue(*reinterpret_cast<QRgb*>(scan_previous + (j+i)*depth));
+
+            sum_red += r * blur_matrix[2][i+1];
+            sum_blue += b * blur_matrix[2][i+1];
+            sum_green += g * blur_matrix[2][i+1];
+
+        }
+
+        // za svaki slucaj, mada ne bi trebalo da upadnemo ovde ikad -- izgleda da upadamo prilicno cesto
+        if(sum_red > 255)
+            sum_red = 255;
+        if(sum_red < 0)
+            sum_red = 0;
+
+        if(sum_blue > 255)
+            sum_blue = 255;
+        if(sum_blue < 0)
+            sum_blue = 0;
+
+        if(sum_blue > 255)
+            sum_blue = 255;
+        if(sum_blue < 0)
+            sum_blue = 0;
+
+        QRgb* pomocna = (reinterpret_cast<QRgb*>(scan_current  + (j  )*depth)); //sluzi da sacuvamo alfa kanal tekuceg piksela, da bude kakav je bio
+        QRgb* output_current = reinterpret_cast<QRgb*>(output_scan_current  + (j  )*depth);
+        *output_current = QColor(sum_red, sum_green, sum_blue, qAlpha(*pomocna)).rgba();
+    }
+
+    return 0;
+
 }
 

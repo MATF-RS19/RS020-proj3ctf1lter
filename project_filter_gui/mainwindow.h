@@ -17,25 +17,24 @@ public:
     ~MainWindow();
 
     QImage& toGrayscale(QImage& qim);
-    QImage& applySobelFilter(QImage& qim);
     QImage& applyMedianFilter(QImage &qim);
     QImage& applySharpeningFilter(QImage &qim);
     QImage& applyBlurFilter(QImage &qim);
     QImage& applyEmbossFilter(QImage &qim);
-
-
+    QImage& applyFilter(QImage &qim, int which);
     QImage& applyGaussianFilter(QImage &qim);
-    static int calculateLineValueSobel(int width, uchar* output_scan_current,
+
+    static void calculateLineValueSobel(int width, uchar* output_scan_current,
                                         uchar* scan_previous, uchar* scan_current, uchar* scan_next);
-    static int calculateLineValueMedian(int width, uchar* output_scan_current,
+    static void calculateLineValueMedian(int width, uchar* output_scan_current,
                                         uchar* scan_previous, uchar* scan_current, uchar* scan_next);
-    static int calculateLineValueSharpening(int width, uchar* output_scan_current,
+    static void calculateLineValueSharpening(int width, uchar* output_scan_current,
                                         uchar* scan_previous, uchar* scan_current, uchar* scan_next);
-    static int calculateLineValueBlur(int width, uchar* output_scan_current,
+    static void calculateLineValueBlur(int width, uchar* output_scan_current,
                                         uchar* scan_previous, uchar* scan_current, uchar* scan_next);
-    static int calculateLineValueGauss(int width, uchar* output_scan_current,
+    static void calculateLineValueGauss(int width, uchar* output_scan_current,
                                         uchar* scan_previous, uchar* scan_current, uchar* scan_next);
-    static int calculateLineValueEmboss(int width, uchar* output_scan_current,
+    static void calculateLineValueEmboss(int width, uchar* output_scan_current,
                                         uchar* scan_previous, uchar* scan_current, uchar* scan_next);
 
 

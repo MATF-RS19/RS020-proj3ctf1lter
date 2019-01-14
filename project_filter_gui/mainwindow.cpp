@@ -13,6 +13,13 @@
 #include <opencv2/imgproc/imgproc.hpp>
 #include "./src/net.hpp"
 
+#define SOBEL 0
+#define MEDIAN 1
+#define GAUSS 2
+#define EMBOSS 3
+#define SHARPENING 4
+#define BLUR 5
+
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow)
@@ -30,8 +37,6 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(ui->button_filter_blur, SIGNAL(clicked()), this, SLOT(button_blur_clicked()));
 
     connect(ui->button_filter_emboss, SIGNAL(clicked()), this, SLOT(button_emboss_clicked()));
-
-
 
     ui->label4output->setMinimumSize(300, 300);
 
@@ -63,7 +68,7 @@ void MainWindow::button_sobel_clicked() {
     if(!qim.isNull()) {
         qim = toGrayscale(qim);
 
-        qim = applySobelFilter(qim);
+        qim = applyFilter(qim, SOBEL);
 
         qpm.convertFromImage(qim);
 
@@ -80,7 +85,7 @@ void MainWindow::button_median_clicked() {
     qim = imp.get_image();
 
     if(!qim.isNull()) {
-        qim = applyMedianFilter(qim);
+        qim = applyFilter(qim, MEDIAN);
 
         qpm.convertFromImage(qim);
 
@@ -98,7 +103,7 @@ void MainWindow::button_sharpening_clicked()
     qim = imp.get_image();
 
     if(!qim.isNull()) {
-        qim = applySharpeningFilter(qim);
+        qim = applyFilter(qim, SHARPENING);
 
         qpm.convertFromImage(qim);
 
@@ -116,7 +121,7 @@ void MainWindow::button_blur_clicked()
     qim = imp.get_image();
 
     if(!qim.isNull()) {
-        qim = applyBlurFilter(qim);
+        qim = applyFilter(qim, BLUR);
 
         qpm.convertFromImage(qim);
 
@@ -134,7 +139,7 @@ void MainWindow::button_emboss_clicked()
     qim = imp.get_image();
 
     if(!qim.isNull()) {
-        qim = applyEmbossFilter(qim);
+        qim = applyFilter(qim, EMBOSS);
 
         qpm.convertFromImage(qim);
 
@@ -180,12 +185,14 @@ QImage &MainWindow::toGrayscale(QImage &qim)
     return qim;
 }
 
-QImage &MainWindow::applySobelFilter(QImage &qim) {
+QImage &MainWindow::applyFilter(QImage &qim, int which) {
 
-    if(!(qim.isGrayscale()))
-    {
-        qDebug() << "The QImage I got here is not a grayscale image, so there is no way I'm doing the Sobel!" ;
-        return qim;
+    if(which==SOBEL) {
+        if(!(qim.isGrayscale()))
+        {
+            qDebug() << "The QImage I got here is not a grayscale image, so there is no way I'm doing the Sobel!" ;
+            return qim;
+        }
     }
 
     QImage qim_copy = qim;
@@ -199,7 +206,33 @@ QImage &MainWindow::applySobelFilter(QImage &qim) {
     {
         uchar* output_scan_current = qim.scanLine(i);
 
-        auto future = QtConcurrent::run(MainWindow::calculateLineValueSobel, qim.width() - 1,
+        std::function<void((int width, uchar* output_scan_current,
+                           uchar* scan_previous, uchar* scan_current, uchar* scan_next))> filter_func;
+
+        switch (which) {
+        case SOBEL:
+            filter_func = MainWindow::calculateLineValueSobel;
+            break;
+        case MEDIAN:
+            filter_func = MainWindow::calculateLineValueMedian;
+            break;
+        case GAUSS:
+            filter_func = MainWindow::calculateLineValueGauss;
+            break;
+        case EMBOSS:
+            filter_func = MainWindow::calculateLineValueEmboss;
+            break;
+        case SHARPENING:
+            filter_func = MainWindow::calculateLineValueSharpening;
+            break;
+        case BLUR:
+            filter_func = MainWindow::calculateLineValueBlur;
+            break;
+        default:
+            break;
+        }
+
+        auto future = QtConcurrent::run(filter_func, qim.width() - 1,
                                              output_scan_current, scan_previous, scan_current, scan_next);
 
         futures.append(future);
@@ -216,7 +249,7 @@ QImage &MainWindow::applySobelFilter(QImage &qim) {
     return qim;
 }
 
-int MainWindow::calculateLineValueSobel(int width, uchar* output_scan_current,
+void MainWindow::calculateLineValueSobel(int width, uchar* output_scan_current,
                                          uchar* scan_previous, uchar* scan_current, uchar* scan_next)
 {
     int depth = 4;
@@ -270,143 +303,9 @@ int MainWindow::calculateLineValueSobel(int width, uchar* output_scan_current,
         QRgb* output_current = reinterpret_cast<QRgb*>(output_scan_current  + (j  )*depth);
         *output_current = QColor(sum, sum, sum, qAlpha(*pomocna)).rgba();
     }
-
-    return 0;
 }
 
-QImage &MainWindow::applyMedianFilter(QImage &qim)
-{
-    QImage qim_copy = qim;
-
-    uchar* scan_previous = qim_copy.scanLine(0);
-    uchar* scan_current  = qim_copy.scanLine(1);
-    uchar* scan_next     = qim_copy.scanLine(2);
-
-    QList<QFuture<void> > futures;
-
-    for (int i = 1; i < qim.height() - 1; i++)
-    {
-        uchar* output_scan_current = qim.scanLine(i);
-
-        //funkcija pravi novi thread svaki put kad je pozvana..
-        //u teoriji bi trebalo da dobijemo neko ubrzanje......
-        auto future = QtConcurrent::run(MainWindow::calculateLineValueMedian, qim.width()-1,
-                           output_scan_current, scan_previous, scan_current, scan_next);
-
-        futures.append(future);
-
-        scan_previous = scan_current;
-        scan_current  = scan_next;
-        scan_next     = qim_copy.scanLine(i+2);
-    }
-
-    for(auto future : futures) {
-        future.waitForFinished();
-    }
-
-    return qim;
-}
-
-
-QImage &MainWindow::applySharpeningFilter(QImage &qim)
-{
-    QImage qim_copy = qim;
-
-    uchar* scan_previous = qim_copy.scanLine(0);
-    uchar* scan_current  = qim_copy.scanLine(1);
-    uchar* scan_next     = qim_copy.scanLine(2);
-
-    QList<QFuture<void> > futures;
-
-    for (int i = 1; i < qim.height() - 1; i++)
-    {
-        uchar* output_scan_current = qim.scanLine(i);
-
-        //funkcija pravi novi thread svaki put kad je pozvana..
-        //u teoriji bi trebalo da dobijemo neko ubrzanje......
-        auto future = QtConcurrent::run(MainWindow::calculateLineValueSharpening, qim.width()-1,
-                           output_scan_current, scan_previous, scan_current, scan_next);
-
-        futures.append(future);
-
-        scan_previous = scan_current;
-        scan_current  = scan_next;
-        scan_next     = qim_copy.scanLine(i+2);
-    }
-
-    for(auto future : futures) {
-        future.waitForFinished();
-    }
-
-    return qim;
-}
-
-QImage &MainWindow::applyBlurFilter(QImage &qim)
-{
-    QImage qim_copy = qim;
-
-    uchar* scan_previous = qim_copy.scanLine(0);
-    uchar* scan_current  = qim_copy.scanLine(1);
-    uchar* scan_next     = qim_copy.scanLine(2);
-
-    QList<QFuture<void> > futures;
-
-    for (int i = 1; i < qim.height() - 1; i++)
-    {
-        uchar* output_scan_current = qim.scanLine(i);
-
-        //funkcija pravi novi thread svaki put kad je pozvana..
-        //u teoriji bi trebalo da dobijemo neko ubrzanje......
-        auto future = QtConcurrent::run(MainWindow::calculateLineValueBlur, qim.width()-1,
-                           output_scan_current, scan_previous, scan_current, scan_next);
-
-        futures.append(future);
-
-        scan_previous = scan_current;
-        scan_current  = scan_next;
-        scan_next     = qim_copy.scanLine(i+2);
-    }
-
-    for(auto future : futures) {
-        future.waitForFinished();
-    }
-
-    return qim;
-}
-
-QImage &MainWindow::applyEmbossFilter(QImage &qim)
-{
-    QImage qim_copy = qim;
-
-    uchar* scan_previous = qim_copy.scanLine(0);
-    uchar* scan_current  = qim_copy.scanLine(1);
-    uchar* scan_next     = qim_copy.scanLine(2);
-
-    QList<QFuture<void> > futures;
-
-    for (int i = 1; i < qim.height() - 1; i++)
-    {
-        uchar* output_scan_current = qim.scanLine(i);
-
-        //funkcija pravi novi thread svaki put kad je pozvana..
-        //u teoriji bi trebalo da dobijemo neko ubrzanje......
-        auto future = QtConcurrent::run(MainWindow::calculateLineValueEmboss, qim.width()-1,
-                           output_scan_current, scan_previous, scan_current, scan_next);
-
-        futures.append(future);
-
-        scan_previous = scan_current;
-        scan_current  = scan_next;
-        scan_next     = qim_copy.scanLine(i+2);
-    }
-
-    for(auto future : futures) {
-        future.waitForFinished();
-    }
-
-    return qim;
-}
-int MainWindow::calculateLineValueSharpening(int width, uchar* output_scan_current, uchar* scan_previous, uchar* scan_current, uchar* scan_next)
+void MainWindow::calculateLineValueSharpening(int width, uchar* output_scan_current, uchar* scan_previous, uchar* scan_current, uchar* scan_next)
 {
     int depth = 4;
 
@@ -473,11 +372,9 @@ int MainWindow::calculateLineValueSharpening(int width, uchar* output_scan_curre
         QRgb* output_current = reinterpret_cast<QRgb*>(output_scan_current  + (j  )*depth);
         *output_current = QColor(sum_red, sum_green, sum_blue, qAlpha(*pomocna)).rgba();
     }
-
-    return 0;
 }
 
-int MainWindow::calculateLineValueBlur(int width, uchar *output_scan_current, uchar *scan_previous, uchar *scan_current, uchar *scan_next)
+void MainWindow::calculateLineValueBlur(int width, uchar *output_scan_current, uchar *scan_previous, uchar *scan_current, uchar *scan_next)
 {
     int depth = 4;
 
@@ -547,12 +444,10 @@ int MainWindow::calculateLineValueBlur(int width, uchar *output_scan_current, uc
         *output_current = QColor(sum_red, sum_green, sum_blue, qAlpha(*pomocna)).rgba();
     }
 
-    return 0;
-
 }
 
 
-int MainWindow::calculateLineValueMedian(int width, uchar* output_scan_current, uchar* scan_previous, uchar* scan_current, uchar* scan_next)
+void MainWindow::calculateLineValueMedian(int width, uchar* output_scan_current, uchar* scan_previous, uchar* scan_current, uchar* scan_next)
 {
 
     for (int j = 0; j < width; ++j) {
@@ -600,8 +495,6 @@ int MainWindow::calculateLineValueMedian(int width, uchar* output_scan_current, 
         auto a = qAlpha(*current);
         *output_current = QColor(r, g, b, a).rgba();
     }
-
-    return 0;
 }
 
 void MainWindow::on_button_save_image_clicked()
@@ -662,43 +555,13 @@ void MainWindow::on_button_filter_compression_clicked()
     }
 }
 
-QImage &MainWindow::applyGaussianFilter(QImage &qim) {
-
-    QImage qim_copy = qim;
-
-    uchar* scan_previous = qim_copy.scanLine(0);
-    uchar* scan_current = qim_copy.scanLine(1);
-    uchar* scan_next = qim_copy.scanLine(2);
-
-    QList<QFuture<void> > futures;
-    for (int i = 1; i < qim.height() - 1; i++)
-    {
-        uchar* output_scan_current = qim.scanLine(i);
-
-        auto future = QtConcurrent::run(MainWindow::calculateLineValueGauss, qim.width() - 1,
-                                             output_scan_current, scan_previous, scan_current, scan_next);
-
-        futures.append(future);
-
-        scan_previous = scan_current;
-        scan_current = scan_next;
-        scan_next = qim_copy.scanLine(i+2);
-    }
-
-    for(auto future : futures) {
-        future.waitForFinished();
-    }
-
-    return qim;
-}
-
 void MainWindow::on_button_filter_gauss_clicked() {
     QPixmap qpm;
     QImage qim;
     qim = imp.get_image();
 
     if(!qim.isNull()) {
-        qim = applyGaussianFilter(qim);
+        qim = applyFilter(qim, GAUSS);
 
         qpm.convertFromImage(qim);
 
@@ -709,7 +572,7 @@ void MainWindow::on_button_filter_gauss_clicked() {
     }
 }
 
-int MainWindow::calculateLineValueGauss(int width, uchar* output_scan_current,
+void MainWindow::calculateLineValueGauss(int width, uchar* output_scan_current,
                                          uchar* scan_previous, uchar* scan_current, uchar* scan_next)
 {
     int depth = 4;
@@ -747,19 +610,15 @@ int MainWindow::calculateLineValueGauss(int width, uchar* output_scan_current,
         QRgb* output_current = reinterpret_cast<QRgb*>(output_scan_current  + (j  )*depth);
         *output_current = QColor(red, green, blue).rgba();
     }
-
-    return 0;
 }
 
-int MainWindow::calculateLineValueEmboss(int width, uchar *output_scan_current, uchar *scan_previous, uchar *scan_current, uchar *scan_next)
+void MainWindow::calculateLineValueEmboss(int width, uchar *output_scan_current, uchar *scan_previous, uchar *scan_current, uchar *scan_next)
 {
     int depth = 4;
-
 
     QVector<QVector<double>> blur_matrix = {        { -1, -1,  0},
                                                     { -1,  0,  1},
                                                     { 0,   1,  1}};
-
 
     for (int j = 1; j < width; ++j) {
 
@@ -821,7 +680,4 @@ int MainWindow::calculateLineValueEmboss(int width, uchar *output_scan_current, 
         *output_current = QColor(sum_red, sum_green, sum_blue, qAlpha(*pomocna)).rgba();
     }
 
-    return 0;
-
 }
-

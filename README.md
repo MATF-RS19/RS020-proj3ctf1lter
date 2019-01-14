@@ -79,10 +79,3 @@ Note: Remove -gpu all flag to train on CPU
 
 See also the list of [contributors](https://github.com/MATF-RS19/RS020-proj3ctf1lter/graphs/contributors) who participated in this project.
 
-## License
-
-This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details
-
-## Acknowledgments
-
-* NAVESTI SVE REFERENCE I SLICNO

@@ -56,7 +56,7 @@ vector<float> Compressor::compress(const cv::Mat& img) {
 	cv::Mat input_img(img_dim, img_dim, CV_32FC1, input_layer->mutable_cpu_data());
 	net_->Forward();
 	
-    std::cout << "---------- Storing decompressed image as rez.png   ----------" << std::endl;
+//    std::cout << "---------- Storing decompressed image as rez.png   ----------" << std::endl;
 	cv::Mat decompressed_img(img_dim,img_dim, CV_32FC1, output_layer->mutable_cpu_data());
 	cv::imwrite("./rez.png", decompressed_img); 
 
@@ -66,7 +66,13 @@ vector<float> Compressor::compress(const cv::Mat& img) {
 	float loss = caffe_cpu_dot(img_dim*img_dim, diff, diff) / 2.0;
 	delete[] diff;
 
-    std::cout << "loss is " << loss << std::endl;
+    std::cout << "loss is " << std::sqrt(loss) << std::endl;
+
+    float max_loss = caffe_cpu_dot(img_dim*img_dim, input_layer->cpu_data(), input_layer->cpu_data());
+
+    std::cout << "max loss is " << std::sqrt(max_loss) << std::endl;
+
+    std::cout << "accuracy: " << std::sqrt(loss) / std::sqrt(max_loss) << std::endl;
 
 	shared_ptr<Blob<float>> compression_layer = net_->blob_by_name("encode3neuron");
 

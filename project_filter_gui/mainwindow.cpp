@@ -176,19 +176,20 @@ void MainWindow::on_button_filter_compression_clicked()
     if(!qim.isNull()) {
         qim = toGrayscale(qim);
 
-        int img_dim = 28;
+//        int img_dim = 200;
 
-        if(qim.width() != img_dim|| qim.height()!=img_dim) {
-            qim = qim.scaled(img_dim, img_dim, Qt::KeepAspectRatio);
-        }
+//        if(qim.width() != img_dim|| qim.height()!=img_dim) {
+//            qim = qim.scaled(img_dim, img_dim, Qt::KeepAspectRatio);
+//        }
 
         cv::Mat img(qim.height(), qim.width(),
                     CV_8UC3, qim.bits(), qim.bytesPerLine());
 
         //apply compression
-        ::google::InitGoogleLogging("compression");
+//        ::google::InitGoogleLogging("compression");
+
         Compressor compressor("src/prototxt_files/compress_deploy_output_image.prototxt",
-                              "trained_models/compress_net_iter_65000.caffemodel",
+                              "trained_models/compress_net_snap_iter_864571.caffemodel",
                               "train_mean.binaryproto");
 
         std::vector<float> compressed = compressor.compress(img);
@@ -202,7 +203,7 @@ void MainWindow::on_button_filter_compression_clicked()
 
         out.close();
 
-        qpm.convertFromImage(qim);
+        qim = QImage("./rez.png");
 
         qpm.convertFromImage(qim);
 

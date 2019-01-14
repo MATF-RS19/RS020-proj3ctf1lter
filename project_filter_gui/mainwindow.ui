@@ -79,24 +79,10 @@
       </property>
      </widget>
     </item>
-    <item row="7" column="8">
-     <widget class="QPushButton" name="button_filter_compression">
-      <property name="text">
-       <string>Compression</string>
-      </property>
-     </widget>
-    </item>
     <item row="0" column="0">
      <widget class="QPushButton" name="button_load_image">
       <property name="text">
        <string>Load Image</string>
-      </property>
-     </widget>
-    </item>
-    <item row="0" column="8">
-     <widget class="QPushButton" name="button_save_image">
-      <property name="text">
-       <string>Save Image</string>
       </property>
      </widget>
     </item>
@@ -119,6 +105,20 @@
       </property>
       <property name="alignment">
        <set>Qt::AlignCenter</set>
+      </property>
+     </widget>
+    </item>
+    <item row="7" column="9">
+     <widget class="QPushButton" name="button_filter_compression">
+      <property name="text">
+       <string>Compression</string>
+      </property>
+     </widget>
+    </item>
+    <item row="0" column="9">
+     <widget class="QPushButton" name="button_save_image">
+      <property name="text">
+       <string>Save Image</string>
       </property>
      </widget>
     </item>

@@ -24,7 +24,7 @@ int current_filter;
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow)
-{
+{//Postavljanje UI
     ui->setupUi(this);
 
     connect(ui->button_load_image, SIGNAL(clicked()), this, SLOT(button_load_clicked()));
@@ -44,10 +44,11 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->label_image->setMinimumSize(300, 300);
 
     ui->centralWidget->setMinimumSize(700,400);
+
 }
 
 void MainWindow::button_load_clicked() {
-
+//Otvaranje prozora za izbor slike na kojoj ce se izvrsavati filteri.
     QString file_name = QFileDialog::getOpenFileName(this, "Open File",
                                                     "../../../../Pictures", //TODO NAPRAVI OVO LEPO DA RADI SVUDA
                                                     "Images (*.png *.jpg)");
@@ -63,6 +64,7 @@ void MainWindow::button_load_clicked() {
 }
 
 void MainWindow::button_sobel_clicked() {
+
 
     QPixmap qpm;
     QImage qim;
@@ -155,7 +157,7 @@ void MainWindow::button_emboss_clicked()
 }
 
 void MainWindow::on_button_save_image_clicked()
-{
+{//cuvanje slike gde je data lokacija postavljena kao preporuka za lokaciju
     QString file_name = QFileDialog::getSaveFileName(this, "Save File",
                                                          "~/Pictures/filtered_image.jpg");
 
@@ -176,17 +178,10 @@ void MainWindow::on_button_filter_compression_clicked()
     if(!qim.isNull()) {
         qim = toGrayscale(qim);
 
-//        int img_dim = 200;
-
-//        if(qim.width() != img_dim|| qim.height()!=img_dim) {
-//            qim = qim.scaled(img_dim, img_dim, Qt::KeepAspectRatio);
-//        }
 
         cv::Mat img(qim.height(), qim.width(),
                     CV_8UC3, qim.bits(), qim.bytesPerLine());
 
-        //apply compression
-//        ::google::InitGoogleLogging("compression");
 
         Compressor compressor("src/prototxt_files/compress_deploy_output_image.prototxt",
                               "trained_models/compress_net_snap_iter_864571.caffemodel",
@@ -234,7 +229,7 @@ void MainWindow::on_button_filter_gauss_clicked() {
 ///////////////////////////////////////////////////////////////////
 
 QImage &MainWindow::toGrayscale(QImage &qim)
-{
+{//prepisivanje slike u crno-beli format
     for (int i = 0; i < qim.height(); i++)
     {
         int depth =4;
@@ -249,7 +244,8 @@ QImage &MainWindow::toGrayscale(QImage &qim)
     return qim;
 }
 
-QImage &MainWindow::applyFilter(QImage &qim, int which) {
+QImage &MainWindow::applyFilter(QImage &qim, int which)
+{
     current_filter = which;
     if(current_filter==SOBEL) {
         if(!(qim.isGrayscale()))
@@ -346,7 +342,6 @@ void MainWindow::calculateLineValue(int width, uchar* output_scan_current,
                     return;
     }
 
-    int tmp;
 
     for (int j = 1; j < width; ++j) {
         int sum_red = 0, sum_blue = 0, sum_green = 0;

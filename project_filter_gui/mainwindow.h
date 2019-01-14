@@ -36,7 +36,8 @@ public:
                                         uchar* scan_previous, uchar* scan_current, uchar* scan_next);
     static void calculateLineValueEmboss(int width, uchar* output_scan_current,
                                         uchar* scan_previous, uchar* scan_current, uchar* scan_next);
-
+    static void calculateLineValue(int width, uchar* output_scan_current,
+                                             uchar* scan_previous, uchar* scan_current, uchar* scan_next);
 
 public Q_SLOTS:
     void button_load_clicked();
